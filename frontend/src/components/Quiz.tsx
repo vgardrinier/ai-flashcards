@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -13,15 +13,19 @@ import {
   Card,
   CardContent,
   Divider,
-  Alert
+  Alert,
+  CircularProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { quizAPI, eloAPI } from '../api';
+import { QuizQuestion as ApiQuizQuestion } from '../types/api';
 
 const QuizContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   maxWidth: 800,
   margin: '0 auto',
   marginTop: theme.spacing(2),
+  elevation: 3,
 }));
 
 const ProgressContainer = styled(Box)(({ theme }) => ({
@@ -48,28 +52,25 @@ const ResultCard = styled(Card)(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
 }));
 
-interface QuizOption {
-  id: string;
-  text: string;
-  isCorrect: boolean;
-}
-
-interface QuizQuestion {
-  id: string;
+export interface QuizQuestion {
+  id: number;
   question: string;
-  options: QuizOption[];
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: 'a' | 'b' | 'c' | 'd';
   explanation: string;
-  category: string;
+  category_id: number;
   difficulty: number;
-  relatedFlashcardId?: string;
 }
 
 interface QuizProps {
-  questions: QuizQuestion[];
-  category: string;
+  categoryId: number;
+  userId: number;
   onComplete: (results: QuizResult) => void;
   timed?: boolean;
-  timeLimit?: number; // in seconds
+  timeLimit?: number;
 }
 
 export interface QuizResult {
@@ -77,8 +78,8 @@ export interface QuizResult {
   correctAnswers: number;
   score: number;
   answers: {
-    questionId: string;
-    selectedOptionId: string;
+    questionId: string | number;
+    selectedOption: string;
     isCorrect: boolean;
     timeTaken: number;
   }[];
@@ -86,18 +87,21 @@ export interface QuizResult {
 }
 
 const Quiz: React.FC<QuizProps> = ({
-  questions,
-  category,
+  categoryId,
+  userId,
   onComplete,
   timed = false,
   timeLimit = 60,
 }) => {
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedOption, setSelectedOption] = useState<'a' | 'b' | 'c' | 'd' | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [results, setResults] = useState<QuizResult>({
-    totalQuestions: questions.length,
+    totalQuestions: 0,
     correctAnswers: 0,
     score: 0,
     answers: [],
@@ -107,8 +111,47 @@ const Quiz: React.FC<QuizProps> = ({
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [remainingTime, setRemainingTime] = useState<number>(timeLimit);
 
+  const convertApiQuestionToQuizQuestion = (apiQuestion: ApiQuizQuestion): QuizQuestion => {
+    return {
+      id: apiQuestion.id,
+      question: apiQuestion.question,
+      option_a: apiQuestion.option_a,
+      option_b: apiQuestion.option_b,
+      option_c: apiQuestion.option_c,
+      option_d: apiQuestion.option_d,
+      correct_option: apiQuestion.correct_option as 'a' | 'b' | 'c' | 'd',
+      explanation: apiQuestion.explanation,
+      category_id: apiQuestion.category_id,
+      difficulty: apiQuestion.difficulty,
+    };
+  };
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      try {
+        const response = await quizAPI.getAll(categoryId);
+        if (response.status >= 200 && response.status < 300) {
+          const apiQuestions = response.data as unknown as ApiQuizQuestion[];
+          const convertedQuestions = apiQuestions.map(convertApiQuestionToQuizQuestion);
+          setQuestions(convertedQuestions);
+          setResults(prev => ({ ...prev, totalQuestions: convertedQuestions.length }));
+        } else {
+          setError(`Failed to fetch questions: ${response.status} ${response.statusText}`);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        setError(`Error connecting to the server: ${errorMessage}`);
+        console.error('Error fetching questions:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchQuestions();
+  }, [categoryId]);
+
   // Timer effect for timed quizzes
-  React.useEffect(() => {
+  useEffect(() => {
     if (!timed || quizCompleted) return;
 
     const timer = setInterval(() => {
@@ -137,46 +180,64 @@ const Quiz: React.FC<QuizProps> = ({
   };
 
   const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedOption(event.target.value);
+    setSelectedOption(event.target.value as 'a' | 'b' | 'c' | 'd' | null);
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
+    if (!selectedOption) return;
+
     const currentQuestion = questions[currentQuestionIndex];
-    const selectedOptionObj = currentQuestion.options.find(opt => opt.id === selectedOption);
-    const isCorrect = selectedOptionObj?.isCorrect || false;
     const timeTaken = (Date.now() - questionStartTime) / 1000;
 
-    // Update results
-    const updatedResults = {
-      ...results,
-      correctAnswers: isCorrect ? results.correctAnswers + 1 : results.correctAnswers,
-      answers: [
-        ...results.answers,
-        {
-          questionId: currentQuestion.id,
-          selectedOptionId: selectedOption || '',
-          isCorrect,
-          timeTaken,
-        },
-      ],
-    };
-    setResults(updatedResults);
+    try {
+      const response = await quizAPI.submitAnswer(
+        currentQuestion.id,
+        userId,
+        selectedOption
+      );
 
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      setSelectedOption(null);
-      setShowExplanation(false);
-      setQuestionStartTime(Date.now());
-    } else {
-      // Quiz completed
-      const finalResults = {
-        ...updatedResults,
-        score: Math.round((updatedResults.correctAnswers / questions.length) * 100),
-        totalTime: (Date.now() - startTime) / 1000,
-      };
-      setResults(finalResults);
-      setQuizCompleted(true);
-      onComplete(finalResults);
+      if (response.status >= 200 && response.status < 300) {
+        const isCorrect = response.data.data.correct;
+        const scoreChange = response.data.data.score_change;
+        
+        // Update results
+        const updatedResults = {
+          ...results,
+          correctAnswers: isCorrect ? results.correctAnswers + 1 : results.correctAnswers,
+          answers: [
+            ...results.answers,
+            {
+              questionId: currentQuestion.id,
+              selectedOption,
+              isCorrect,
+              timeTaken,
+            },
+          ],
+        };
+        setResults(updatedResults);
+
+        if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(prev => prev + 1);
+          setSelectedOption(null);
+          setShowExplanation(false);
+          setQuestionStartTime(Date.now());
+        } else {
+          // Quiz completed
+          const finalResults = {
+            ...updatedResults,
+            score: Math.round((updatedResults.correctAnswers / questions.length) * 100),
+            totalTime: (Date.now() - startTime) / 1000,
+          };
+          setResults(finalResults);
+          setQuizCompleted(true);
+          onComplete(finalResults);
+        }
+      } else {
+        setError(`Failed to submit answer: ${response.data.data.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error submitting answer:', err);
+      setError(`Error submitting answer: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -184,16 +245,41 @@ const Quiz: React.FC<QuizProps> = ({
     setShowExplanation(true);
   };
 
+  if (loading) {
+    return (
+      <QuizContainer>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <CircularProgress />
+        </Box>
+      </QuizContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <QuizContainer>
+        <Alert severity="error">{error}</Alert>
+      </QuizContainer>
+    );
+  }
+
+  if (questions.length === 0) {
+    return (
+      <QuizContainer>
+        <Alert severity="info">No questions available for this category.</Alert>
+      </QuizContainer>
+    );
+  }
+
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
-  const selectedOptionObj = currentQuestion?.options.find(opt => opt.id === selectedOption);
 
   // Generate stars based on difficulty (1-5)
-  const difficultyStars = currentQuestion ? '★'.repeat(currentQuestion.difficulty) + '☆'.repeat(5 - currentQuestion.difficulty) : '';
+  const difficultyStars = '★'.repeat(currentQuestion.difficulty) + '☆'.repeat(5 - currentQuestion.difficulty);
 
   if (quizCompleted) {
     return (
-      <QuizContainer elevation={3}>
+      <QuizContainer>
         <Typography variant="h4" gutterBottom align="center">
           Quiz Results
         </Typography>
@@ -249,131 +335,89 @@ const Quiz: React.FC<QuizProps> = ({
                 <Typography variant="body1" gutterBottom>
                   {question.question}
                 </Typography>
-                <Divider sx={{ my: 1 }} />
                 <Typography variant="body2" color="text.secondary">
-                  Your answer: {question.options.find(opt => opt.id === answer.selectedOptionId)?.text || "No answer"}
+                  Your answer: {answer.selectedOption}
                 </Typography>
-                <Typography variant="body2" color="success.main">
-                  Correct answer: {question.options.find(opt => opt.isCorrect)?.text}
+                <Typography variant="body2" color="text.secondary">
+                  Time taken: {Math.round(answer.timeTaken)}s
                 </Typography>
-                {!answer.isCorrect && (
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    <strong>Explanation:</strong> {question.explanation}
-                  </Typography>
-                )}
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="body2">
+                  {question.explanation}
+                </Typography>
               </CardContent>
             </ResultCard>
           );
         })}
-
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-          <Button variant="contained" color="primary">
-            Return to Dashboard
-          </Button>
-        </Box>
       </QuizContainer>
     );
   }
 
   return (
-    <QuizContainer elevation={3}>
+    <QuizContainer>
       <ProgressContainer>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="body2" color="text.secondary">
             Question {currentQuestionIndex + 1} of {questions.length}
           </Typography>
-          {timed && (
-            <Typography variant="body2" color={remainingTime < 10 ? "error.main" : "text.secondary"}>
-              Time remaining: {remainingTime}s
-            </Typography>
-          )}
+          <Typography variant="body2" color="text.secondary">
+            {difficultyStars}
+          </Typography>
         </Box>
         <LinearProgress variant="determinate" value={progress} />
       </ProgressContainer>
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        <Chip label={category} color="primary" />
-        <Typography variant="body2" color="text.secondary">
-          Difficulty: {difficultyStars}
-        </Typography>
-      </Box>
-
-      <QuestionContainer>
-        <Typography variant="h5" gutterBottom>
-          {currentQuestion.question}
-        </Typography>
-      </QuestionContainer>
-
-      <OptionsContainer>
-        <RadioGroup
-          value={selectedOption}
-          onChange={handleOptionChange}
-        >
-          {currentQuestion.options.map((option) => (
-            <FormControlLabel
-              key={option.id}
-              value={option.id}
-              control={<Radio />}
-              label={option.text}
-              disabled={showExplanation}
-              sx={{
-                mb: 1,
-                p: 1,
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                ...(showExplanation && option.isCorrect && {
-                  backgroundColor: 'success.light',
-                  borderColor: 'success.main',
-                }),
-                ...(showExplanation && selectedOption === option.id && !option.isCorrect && {
-                  backgroundColor: 'error.light',
-                  borderColor: 'error.main',
-                }),
-              }}
-            />
-          ))}
-        </RadioGroup>
-      </OptionsContainer>
-
-      {showExplanation && (
-        <Box sx={{ mb: 3, p: 2, backgroundColor: 'background.default', borderRadius: 1 }}>
-          <Typography variant="subtitle1" gutterBottom>
-            Explanation:
-          </Typography>
-          <Typography variant="body2">
-            {currentQuestion.explanation}
+      {timed && (
+        <Box sx={{ mb: 2, textAlign: 'center' }}>
+          <Typography variant="h6" color={remainingTime <= 10 ? 'error' : 'textPrimary'}>
+            Time remaining: {remainingTime}s
           </Typography>
         </Box>
       )}
 
-      <ActionContainer>
-        <Button 
-          variant="outlined" 
-          disabled={currentQuestionIndex === 0 || showExplanation}
-          onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
-        >
-          Previous
-        </Button>
-        
-        {!showExplanation ? (
-          <Button 
-            variant="contained" 
-            color="primary" 
-            disabled={!selectedOption}
-            onClick={handleCheckAnswer}
-          >
-            Check Answer
-          </Button>
-        ) : (
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={handleNextQuestion}
-          >
-            {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
-          </Button>
+      <QuestionContainer>
+        <Typography variant="h6" gutterBottom>
+          {currentQuestion.question}
+        </Typography>
+
+        <OptionsContainer>
+          <RadioGroup value={selectedOption} onChange={handleOptionChange}>
+            {['a', 'b', 'c', 'd'].map((option) => (
+              <FormControlLabel
+                key={option}
+                value={option}
+                control={<Radio />}
+                label={currentQuestion[`option_${option}` as keyof ApiQuizQuestion] as string}
+                disabled={showExplanation}
+              />
+            ))}
+          </RadioGroup>
+        </OptionsContainer>
+
+        {showExplanation && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {currentQuestion.explanation}
+            </Typography>
+          </Box>
         )}
+      </QuestionContainer>
+
+      <ActionContainer>
+        <Button
+          variant="outlined"
+          onClick={handleCheckAnswer}
+          disabled={!selectedOption || showExplanation}
+        >
+          Check Answer
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleNextQuestion}
+          disabled={!selectedOption}
+        >
+          {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next Question'}
+        </Button>
       </ActionContainer>
     </QuizContainer>
   );
