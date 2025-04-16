@@ -1,0 +1,44 @@
+version: "1.0"
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: ubuntu
+      POSTGRES_DB: ai_flashcards_production
+    ports:
+      - "5432:5432"
+
+  # Rails API Backend
+  api:
+    build:
+      context: ./rails_backend
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://ubuntu:password@db:5432/ai_flashcards_production
+      RAILS_ENV: production
+      RAILS_MASTER_KEY: ${RAILS_MASTER_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "3001:3001"
+    command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails db:migrate && bundle exec rails db:seed && bundle exec rails server -b 0.0.0.0 -p 3001"
+
+  # React Frontend
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      REACT_APP_API_URL: http://api:3001/api/v1
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

@@ -26,6 +26,7 @@ import {
   EmojiEvents as EmojiEventsIcon,
   LocalFireDepartment as FireIcon
 } from '@mui/icons-material';
+import { ELOLevel, Category, RecentActivity } from '../types';
 
 const WelcomeBanner = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -54,35 +55,11 @@ const ActionButton = styled(Button)(({ theme }) => ({
   padding: theme.spacing(1, 3),
 }));
 
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  totalCards: number;
-  masteredCards: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: 'quiz' | 'flashcard' | 'level_up';
-  category: string;
-  date: Date;
-  details: string;
-}
-
 interface DashboardProps {
   username: string;
   eloScore: number;
-  currentLevel: {
-    name: string;
-    description: string;
-    badgeIcon: string;
-  };
-  nextLevel: {
-    name: string;
-    minScore: number;
-  };
+  currentLevel: ELOLevel;
+  nextLevel: ELOLevel;
   progressToNextLevel: number;
   categories: Category[];
   recentActivity: RecentActivity[];

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardActions, Typography, Button, Box, Chip, LinearProgress } from '@mui/material';
+import { Card, CardContent, CardActions as MuiCardActions, Typography, Button, Box, Chip, LinearProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -55,8 +55,8 @@ const CardActions = styled(Box)(({ theme }) => ({
   left: 0,
   right: 0,
   display: 'flex',
-  justifyContent: 'space-between',
-  padding: `0 ${theme.spacing(2)}`,
+  justifyContent: 'center',
+  gap: theme.spacing(1)
 }));
 
 interface FlashcardProps {

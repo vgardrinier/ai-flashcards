@@ -12,6 +12,24 @@ import {
   ResponsiveContainer,
   ReferenceLine
 } from 'recharts';
+import { ELOLevel } from '../types';
+
+interface HistoryEntry {
+  date: string;
+  score: number;
+  change: number;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+}
+
+interface EloAnalyticsProps {
+  history: HistoryEntry[];
+  levels: ELOLevel[];
+}
 
 // Styled components
 const ChartContainer = styled(Paper)(({ theme }) => ({
@@ -29,49 +47,35 @@ const StatCard = styled(Paper)(({ theme }) => ({
   boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
 }));
 
-const StatValue = styled(Typography)(({ theme, positive }) => ({
+const StatValue = styled(Typography)<{ positive?: boolean }>(({ theme, positive }) => ({
   fontWeight: 'bold',
   fontSize: '1.8rem',
   color: positive === undefined 
-    ? theme.palette.primary.main 
+    ? theme.palette.text.primary 
     : positive 
       ? theme.palette.success.main 
-      : theme.palette.error.main,
+      : theme.palette.error.main
 }));
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <Box
-        sx={{
-          backgroundColor: 'white',
-          padding: '10px',
-          border: '1px solid #ccc',
-          borderRadius: '4px',
-        }}
-      >
-        <Typography variant="body2">
-          <strong>Date:</strong> {new Date(label).toLocaleDateString()}
-        </Typography>
-        <Typography variant="body2" color="primary">
-          <strong>Score:</strong> {payload[0].value}
-        </Typography>
-        {payload[1] && (
-          <Typography 
-            variant="body2" 
-            color={payload[1].value >= 0 ? 'success.main' : 'error.main'}
-          >
-            <strong>Change:</strong> {payload[1].value > 0 ? '+' : ''}{payload[1].value}
-          </Typography>
-        )}
-      </Box>
-    );
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length || !label) {
+    return null;
   }
 
-  return null;
+  return (
+    <Box sx={{ p: 2, bgcolor: 'background.paper', boxShadow: 1, borderRadius: 1 }}>
+      <Typography variant="body2">{new Date(label).toLocaleDateString()}</Typography>
+      <Typography variant="body2" color="primary">
+        Score: {payload[0].value}
+      </Typography>
+      <Typography variant="body2" color={payload[1].value > 0 ? 'success.main' : 'error.main'}>
+        Change: {payload[1].value > 0 ? '+' : ''}{payload[1].value}
+      </Typography>
+    </Box>
+  );
 };
 
-const EloAnalytics = ({ history, levels }) => {
+const EloAnalytics: React.FC<EloAnalyticsProps> = ({ history, levels }) => {
   const theme = useTheme();
   
   // Process history data for chart
@@ -90,13 +94,20 @@ const EloAnalytics = ({ history, levels }) => {
     ? Math.round(history.reduce((sum, entry) => sum + entry.change, 0) / history.length) 
     : 0;
   
-  // Generate reference lines for level thresholds
-  const levelThresholds = levels
-    .filter(level => level.min_score > 0)
-    .map(level => ({
-      y: level.min_score,
-      name: level.name
-    }));
+  // Add reference lines for level thresholds
+  const levelLines = levels.map(level => (
+    <ReferenceLine
+      key={level.name}
+      y={level.minScore}
+      stroke={theme.palette.primary.main}
+      strokeDasharray="3 3"
+      label={{
+        value: level.name,
+        position: 'right',
+        fill: theme.palette.primary.main
+      }}
+    />
+  ));
   
   return (
     <Box>
@@ -119,20 +130,7 @@ const EloAnalytics = ({ history, levels }) => {
             <Tooltip content={<CustomTooltip />} />
             
             {/* Level threshold reference lines */}
-            {levelThresholds.map((threshold, index) => (
-              <ReferenceLine 
-                key={index}
-                y={threshold.y} 
-                stroke={theme.palette.grey[400]}
-                strokeDasharray="3 3"
-                label={{ 
-                  value: threshold.name, 
-                  position: 'insideTopRight',
-                  fill: theme.palette.text.secondary,
-                  fontSize: 10
-                }}
-              />
-            ))}
+            {levelLines}
             
             <Line 
               type="monotone" 

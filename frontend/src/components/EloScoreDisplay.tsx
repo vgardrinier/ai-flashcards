@@ -3,13 +3,25 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, LinearProgress, Paper, Grid, Tooltip } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import { ELOLevel } from '../types';
+
+interface EloScoreDisplayProps {
+  score: number;
+  level: ELOLevel;
+  progress: number;
+  pointsToNext: number;
+}
+
+interface LevelBadgeProps {
+  levelName: string;
+}
 
 // Styled components
-const LevelBadge = styled(Paper)(({ theme, level }) => ({
+const LevelBadge = styled(Paper)<LevelBadgeProps>(({ theme, levelName }) => ({
   padding: theme.spacing(2),
   textAlign: 'center',
   color: theme.palette.text.primary,
-  background: getLevelColor(level),
+  background: getLevelColor(levelName),
   borderRadius: '8px',
   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
   transition: 'transform 0.3s ease',
@@ -17,6 +29,8 @@ const LevelBadge = styled(Paper)(({ theme, level }) => ({
     transform: 'translateY(-5px)',
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
   },
+  position: 'relative',
+  overflow: 'hidden'
 }));
 
 const ProgressContainer = styled(Box)(({ theme }) => ({
@@ -39,6 +53,7 @@ const LevelName = styled(Typography)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  gap: theme.spacing(1),
   '& svg': {
     marginRight: theme.spacing(1),
     color: '#FFD700',
@@ -53,8 +68,8 @@ const NextLevelInfo = styled(Typography)(({ theme }) => ({
 }));
 
 // Helper function to get color based on level
-function getLevelColor(level) {
-  const levelColors = {
+function getLevelColor(levelName: string): string {
+  const levelColors: Record<string, string> = {
     'Novice Explorer': 'linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)',
     'AI Apprentice': 'linear-gradient(135deg, #B2EBF2 0%, #80DEEA 100%)',
     'ML Practitioner': 'linear-gradient(135deg, #80DEEA 0%, #4DD0E1 100%)',
@@ -62,17 +77,15 @@ function getLevelColor(level) {
     'NLP Specialist': 'linear-gradient(135deg, #26C6DA 0%, #00BCD4 100%)',
     'AI Systems Architect': 'linear-gradient(135deg, #00BCD4 0%, #00ACC1 100%)',
     'Agent Engineer': 'linear-gradient(135deg, #00ACC1 0%, #0097A7 100%)',
-    'Technical AI Leader': 'linear-gradient(135deg, #0097A7 0%, #00838F 100%)',
-    'AI Startup Strategist': 'linear-gradient(135deg, #00838F 0%, #006064 100%)',
-    'AI Innovation Director': 'linear-gradient(135deg, #006064 0%, #004D40 100%)',
-    'Senior AI Executive': 'linear-gradient(135deg, #004D40 0%, #00352C 100%)',
-    'Tier-1 AI CTO': 'linear-gradient(135deg, #00352C 0%, #002419 100%)',
+    'AI Research Lead': 'linear-gradient(135deg, #0097A7 0%, #00838F 100%)',
+    'AI Product Director': 'linear-gradient(135deg, #00838F 0%, #006064 100%)',
+    'Tier-1 AI CTO': 'linear-gradient(135deg, #006064 0%, #004D40 100%)'
   };
   
-  return levelColors[level] || 'linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)';
+  return levelColors[levelName] || 'linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)';
 }
 
-const EloScoreDisplay = ({ score, level, progress, pointsToNext }) => {
+const EloScoreDisplay: React.FC<EloScoreDisplayProps> = ({ score, level, progress, pointsToNext }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
   
   // Animate score counting up
@@ -97,52 +110,24 @@ const EloScoreDisplay = ({ score, level, progress, pointsToNext }) => {
   }, [score]);
   
   return (
-    <Box sx={{ p: 3 }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <LevelBadge level={level.name} elevation={3}>
-            <LevelName variant="h5">
-              <EmojiEventsIcon />
-              {level.name}
-            </LevelName>
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              {level.description}
-            </Typography>
-            <ScoreDisplay variant="h3">{animatedScore}</ScoreDisplay>
-            <Typography variant="subtitle1" sx={{ textAlign: 'center' }}>
-              ELO Score
-            </Typography>
-            
-            <ProgressContainer>
-              <Tooltip 
-                title={`${progress}% through this level`} 
-                placement="top"
-                arrow
-              >
-                <LinearProgress 
-                  variant="determinate" 
-                  value={progress} 
-                  sx={{ 
-                    height: 10, 
-                    borderRadius: 5,
-                    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                  }} 
-                />
-              </Tooltip>
-            </ProgressContainer>
-            
-            {pointsToNext > 0 ? (
-              <NextLevelInfo>
-                {pointsToNext} points needed to reach next level
-              </NextLevelInfo>
-            ) : (
-              <NextLevelInfo>
-                You've reached the highest level!
-              </NextLevelInfo>
-            )}
-          </LevelBadge>
-        </Grid>
-      </Grid>
+    <Box>
+      <LevelBadge levelName={level.name}>
+        <Box>
+          <Typography variant="h6" component="div">
+            {level.name}
+          </Typography>
+          <ScoreDisplay>{animatedScore}</ScoreDisplay>
+          <Typography variant="body2" color="text.secondary">
+            {level.description}
+          </Typography>
+        </Box>
+      </LevelBadge>
+      <ProgressContainer>
+        <LinearProgress variant="determinate" value={progress} />
+        <Typography variant="body2" color="text.secondary" align="center">
+          {pointsToNext} points to next level
+        </Typography>
+      </ProgressContainer>
     </Box>
   );
 };

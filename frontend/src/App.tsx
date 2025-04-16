@@ -1,4 +1,5 @@
 import React from 'react';
+import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -20,7 +21,9 @@ import {
   MenuItem,
   Tooltip,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Button,
+  Grid
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -39,9 +42,17 @@ import Dashboard from './components/Dashboard';
 import Flashcard from './components/Flashcard';
 import Quiz from './components/Quiz';
 import ProgressTracking from './components/ProgressTracking';
+import EloScoreDisplay from './components/EloScoreDisplay';
+import EloLevelProgression from './components/EloLevelProgression';
+import EloAnalytics from './components/EloAnalytics';
+import ApiTest from './components/ApiTest';
+
+// Import types
+import { RecentActivity, ELOLevel, Category } from './types';
+import { quizQuestions } from './data/quizQuestions';
 
 // Sample data for demonstration
-const sampleCategories = [
+const sampleCategories: Category[] = [
   {
     id: '1',
     name: 'AI Fundamentals',
@@ -76,7 +87,7 @@ const sampleCategories = [
   }
 ];
 
-const sampleRecentActivity = [
+const sampleRecentActivity: RecentActivity[] = [
   {
     id: '1',
     type: 'quiz',
@@ -107,7 +118,7 @@ const sampleRecentActivity = [
   }
 ];
 
-const sampleELOLevels = [
+const sampleELOLevels: ELOLevel[] = [
   {
     name: "Novice Explorer",
     minScore: 0,
@@ -130,6 +141,7 @@ const App: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [currentPage, setCurrentPage] = React.useState('dashboard');
+  const [showLogin, setShowLogin] = React.useState(false);
 
   // Create theme based on dark mode preference
   const theme = createTheme({
@@ -176,11 +188,15 @@ const App: React.FC = () => {
   // Sample user data
   const userData = {
     username: 'AI_Learner',
+    userId: 1,
     eloScore: 1150,
     currentLevel: sampleELOLevels[1], // AI Apprentice
     nextLevel: {
       name: "ML Practitioner",
       minScore: 1200,
+      maxScore: 1399,
+      description: "Demonstrating practical ML skills and understanding",
+      badgeIcon: "ml_practitioner_badge.png"
     },
     progressToNextLevel: 75, // 75% progress to next level
     studyStreak: 7,
@@ -296,36 +312,14 @@ const App: React.FC = () => {
           <Box sx={{ p: 3 }}>
             <Typography variant="h4" gutterBottom>Quiz</Typography>
             <Quiz
-              questions={[
-                {
-                  id: "q1",
-                  question: "Which of the following is NOT a key component of a transformer architecture in LLMs?",
-                  options: [
-                    { id: "a", text: "Self-attention mechanism", isCorrect: false },
-                    { id: "b", text: "Positional encoding", isCorrect: false },
-                    { id: "c", text: "Convolutional layers", isCorrect: true },
-                    { id: "d", text: "Feed-forward neural networks", isCorrect: false }
-                  ],
-                  explanation: "Transformer architectures primarily use self-attention mechanisms, positional encoding, and feed-forward neural networks. Convolutional layers are more commonly found in CNN architectures, not transformers.",
-                  category: "Large Language Models",
-                  difficulty: 4
-                },
-                {
-                  id: "q2",
-                  question: "What is the main advantage of ELO scoring systems?",
-                  options: [
-                    { id: "a", text: "They only track correct answers", isCorrect: false },
-                    { id: "b", text: "They adjust based on the difficulty of questions", isCorrect: true },
-                    { id: "c", text: "They don't require any calculations", isCorrect: false },
-                    { id: "d", text: "They only work for multiple choice questions", isCorrect: false }
-                  ],
-                  explanation: "ELO scoring systems adjust scores based on the difficulty of questions or opponents. When you answer difficult questions correctly, you gain more points than answering easy questions correctly.",
-                  category: "Tech CTO Skills",
-                  difficulty: 3
-                }
-              ]}
-              category="Mixed Categories"
-              onComplete={(results) => console.log('Quiz completed:', results)}
+              categoryId={1}
+              userId={userData.userId}
+              onComplete={(results) => {
+                console.log('Quiz completed:', results);
+                // TODO: Update ELO score based on results
+              }}
+              timed={true}
+              timeLimit={60}
             />
           </Box>
         );
@@ -371,6 +365,8 @@ const App: React.FC = () => {
             </Typography>
           </Box>
         );
+      case 'api-test':
+        return <ApiTest />;
       default:
         return (
           <Box sx={{ p: 3 }}>
@@ -386,64 +382,40 @@ const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex' }}>
-        <AppBar position="fixed">
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <AppBar position="static">
           <Toolbar>
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              edge="start"
-              onClick={toggleDrawer}
-              sx={{ mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
               AI Flashcards
             </Typography>
-            <Box>
-              <Tooltip title="Account settings">
-                <IconButton
-                  size="large"
-                  aria-label="account of current user"
-                  aria-controls="menu-appbar"
-                  aria-haspopup="true"
-                  onClick={handleMenu}
-                  color="inherit"
-                >
-                  <Avatar sx={{ width: 32, height: 32 }}>
-                    {userData.username.charAt(0)}
-                  </Avatar>
-                </IconButton>
-              </Tooltip>
-              <Menu
-                id="menu-appbar"
-                anchorEl={anchorEl}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
-                keepMounted
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                open={Boolean(anchorEl)}
-                onClose={handleClose}
-              >
-                <MenuItem onClick={handleClose}>Profile</MenuItem>
-                <MenuItem onClick={handleClose}>My account</MenuItem>
-                <Divider />
-                <MenuItem onClick={handleClose}>
-                  <ListItemIcon>
-                    <LogoutIcon fontSize="small" />
-                  </ListItemIcon>
-                  Logout
-                </MenuItem>
-              </Menu>
-            </Box>
+            <Button color="inherit" onClick={() => setShowLogin(true)}>
+              Login
+            </Button>
           </Toolbar>
         </AppBar>
+
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={8}>
+              {renderContent()}
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <EloScoreDisplay
+                score={1200}
+                level={{
+                  name: "Intermediate",
+                  minScore: 1000,
+                  maxScore: 1500,
+                  description: "Intermediate level",
+                  badgeIcon: "intermediate-badge"
+                }}
+                progress={65}
+                pointsToNext={150}
+              />
+            </Grid>
+          </Grid>
+        </Container>
+
         <Drawer
           anchor="left"
           open={drawerOpen}
@@ -451,18 +423,6 @@ const App: React.FC = () => {
         >
           {drawerContent}
         </Drawer>
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: 0,
-            width: '100%',
-            minHeight: '100vh',
-            marginTop: '64px', // AppBar height
-          }}
-        >
-          {renderContent()}
-        </Box>
       </Box>
     </ThemeProvider>
   );

@@ -1,9 +1,20 @@
 // Component to display ELO level progression chart
 import React from 'react';
-import { Box, Typography, Paper, Grid } from '@mui/material';
+import { Box, Typography, Paper, Grid, LinearProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import StarIcon from '@mui/icons-material/Star';
+import { ELOLevel } from '../types';
+
+interface EloLevelProgressionProps {
+  levels: ELOLevel[];
+  currentLevel: number;
+}
+
+interface LevelCardProps {
+  isCurrent: boolean;
+  isCompleted: boolean;
+}
 
 // Styled components
 const ProgressionContainer = styled(Box)(({ theme }) => ({
@@ -12,25 +23,23 @@ const ProgressionContainer = styled(Box)(({ theme }) => ({
   marginBottom: theme.spacing(3),
 }));
 
-const LevelCard = styled(Paper)(({ theme, active, completed }) => ({
+const LevelCard = styled(Paper)<LevelCardProps>(({ theme, isCurrent, isCompleted }) => ({
   padding: theme.spacing(2),
   textAlign: 'center',
   borderRadius: '8px',
+  backgroundColor: isCurrent 
+    ? theme.palette.primary.main 
+    : isCompleted 
+      ? theme.palette.success.light 
+      : theme.palette.grey[200],
+  color: isCurrent ? theme.palette.primary.contrastText : theme.palette.text.primary,
   position: 'relative',
+  overflow: 'hidden',
   transition: 'all 0.3s ease',
-  opacity: completed ? 0.85 : active ? 1 : 0.7,
-  transform: active ? 'scale(1.05)' : 'scale(1)',
-  boxShadow: active 
-    ? '0 8px 16px rgba(0, 0, 0, 0.2)' 
-    : completed 
-      ? '0 4px 8px rgba(0, 0, 0, 0.1)' 
-      : '0 2px 4px rgba(0, 0, 0, 0.05)',
-  background: completed 
-    ? 'linear-gradient(135deg, #81C784 0%, #4CAF50 100%)' 
-    : active 
-      ? 'linear-gradient(135deg, #64B5F6 0%, #2196F3 100%)' 
-      : 'white',
-  color: (completed || active) ? 'white' : theme.palette.text.primary,
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: theme.shadows[4]
+  }
 }));
 
 const LevelTitle = styled(Typography)(({ theme }) => ({
@@ -60,78 +69,44 @@ const ArrowContainer = styled(Box)(({ theme }) => ({
 
 const CompletedBadge = styled(Box)(({ theme }) => ({
   position: 'absolute',
-  top: -10,
-  right: -10,
-  backgroundColor: '#FFD700',
-  borderRadius: '50%',
-  width: 24,
-  height: 24,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
-  '& svg': {
-    fontSize: '0.9rem',
-    color: 'white',
-  },
+  top: 0,
+  right: 0,
+  padding: theme.spacing(0.5, 1),
+  backgroundColor: theme.palette.success.main,
+  color: theme.palette.success.contrastText,
+  fontSize: '0.75rem',
+  borderBottomLeftRadius: '8px'
 }));
 
-const EloLevelProgression = ({ currentScore, levels }) => {
-  // Find current level
-  const currentLevel = levels.find(level => 
-    currentScore >= level.min_score && currentScore <= level.max_score
-  ) || levels[0];
-  
-  // Get visible levels (current, previous, and next)
-  const currentIndex = levels.findIndex(level => level.name === currentLevel.name);
-  const startIndex = Math.max(0, currentIndex - 1);
-  const endIndex = Math.min(levels.length - 1, currentIndex + 3);
-  const visibleLevels = levels.slice(startIndex, endIndex + 1);
-  
+const EloLevelProgression: React.FC<EloLevelProgressionProps> = ({ levels, currentLevel }) => {
   return (
     <ProgressionContainer>
       <Typography variant="h6" gutterBottom>
-        ELO Level Progression
+        Level Progression
       </Typography>
-      
-      <Grid container spacing={1} alignItems="center">
-        {visibleLevels.map((level, index) => {
-          const isActive = level.name === currentLevel.name;
-          const isCompleted = currentScore > level.max_score;
-          
-          return (
-            <React.Fragment key={level.name}>
-              {index > 0 && (
-                <Grid item xs={1}>
-                  <ArrowContainer>
-                    <ArrowForwardIcon />
-                  </ArrowContainer>
-                </Grid>
+      <Grid container spacing={2}>
+        {levels.map((level, index) => (
+          <Grid item xs={12} sm={6} md={4} key={level.name}>
+            <LevelCard 
+              isCurrent={index === currentLevel}
+              isCompleted={index < currentLevel}
+            >
+              {index < currentLevel && (
+                <CompletedBadge>Completed</CompletedBadge>
               )}
-              
-              <Grid item xs={index === 0 ? 3 : 2}>
-                <LevelCard active={isActive} completed={isCompleted}>
-                  {isCompleted && (
-                    <CompletedBadge>
-                      <StarIcon />
-                    </CompletedBadge>
-                  )}
-                  <LevelTitle variant="subtitle2">
-                    {level.name}
-                  </LevelTitle>
-                  <ScoreRange variant="body2">
-                    {level.min_score} - {level.max_score === Infinity ? '∞' : level.max_score}
-                  </ScoreRange>
-                </LevelCard>
-              </Grid>
-            </React.Fragment>
-          );
-        })}
+              <Typography variant="subtitle1" gutterBottom>
+                {level.name}
+              </Typography>
+              <Typography variant="body2">
+                Score Range: {level.minScore} - {level.maxScore}
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {level.description}
+              </Typography>
+            </LevelCard>
+          </Grid>
+        ))}
       </Grid>
-      
-      <Typography variant="body2" color="textSecondary" sx={{ mt: 2, textAlign: 'center' }}>
-        {currentLevel.description}
-      </Typography>
     </ProgressionContainer>
   );
 };

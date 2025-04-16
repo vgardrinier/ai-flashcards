@@ -1,13 +1,14 @@
-# Render.com deployment configuration for frontend
+# Render.com deployment configuration for React frontend
 services:
+  # React frontend static site
   - type: web
-    name: ai-flashcards-app
+    name: ai-flashcards-frontend
     env: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://ai-flashcards-api.onrender.com/api
+        value: https://ai-flashcards-api.onrender.com/api/v1
     routes:
       - type: rewrite
         source: /*
