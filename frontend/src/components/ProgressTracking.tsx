@@ -90,9 +90,9 @@ interface QuizHistoryItem {
 
 interface ProgressTrackingProps {
   username: string;
-  overallScore: number;
-  currentLevel: ELOLevel;
-  nextLevel: ELOLevel;
+  overallScore: number | null;
+  currentLevel: ELOLevel | null;
+  nextLevel: ELOLevel | null;
   progressToNextLevel: number;
   categoryScores: CategoryScore[];
   quizHistory: QuizHistoryItem[];
@@ -113,6 +113,14 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
   cardsReviewed,
   timeSpent,
 }) => {
+  if (!overallScore || !currentLevel || !nextLevel) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography>Loading progress data...</Typography>
+      </Box>
+    );
+  }
+
   // Prepare data for radar chart
   const radarData = {
     labels: categoryScores.map(cat => cat.category),

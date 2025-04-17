@@ -27,20 +27,25 @@ export interface QuizQuestion {
   option_c: string;
   option_d: string;
   correct_option: 'a' | 'b' | 'c' | 'd';
-  explanation: string;
-  category_id: number;
   difficulty: number;
+  category: {
+    id: number;
+    name: string;
+  };
+  explanation: string;
 }
 
 export interface QuizAttemptRequest {
   user_id: number;
   selected_option: 'a' | 'b' | 'c' | 'd';
+  difficulty: number;
 }
 
 export interface QuizAttemptResponse {
   correct: boolean;
   score_change: number;
   message?: string;
+  explanation?: string;
 }
 
 // ELO Score types
@@ -93,11 +98,25 @@ export interface UserProgress {
 export interface ApiResponse<T> {
   data: T;
   status: number;
-  message?: string;
+  statusText: string;
+  headers: any;
 }
 
 export interface ApiError {
   message: string;
   status: number;
   errors?: Record<string, string[]>;
+}
+
+export interface QuizResults {
+  categoryId: number;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  answers: Array<{
+    questionId: number;
+    selectedOption: 'a' | 'b' | 'c' | 'd';
+    correct: boolean;
+    explanation?: string;
+  }>;
 } 

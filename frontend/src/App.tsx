@@ -1,28 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider, createTheme, CssBaseline, Box, Container, Typography, Button, Paper, CircularProgress, Alert, Snackbar } from '@mui/material';
 import { 
   AppBar, 
   Toolbar, 
-  Typography, 
   IconButton, 
-  Box, 
   Drawer, 
   List, 
   ListItem, 
   ListItemIcon, 
   ListItemText,
   Divider,
-  Container,
   Avatar,
   Menu,
   MenuItem,
   Tooltip,
   Switch,
   FormControlLabel,
-  Button,
   Grid
 } from '@mui/material';
 import {
@@ -36,8 +31,8 @@ import {
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon
 } from '@mui/icons-material';
-
-// Import components
+import { quizAPI } from './api';
+import { eloAPI } from './api/eloAPI';
 import Dashboard from './components/Dashboard';
 import Flashcard from './components/Flashcard';
 import Quiz from './components/Quiz';
@@ -46,10 +41,16 @@ import EloScoreDisplay from './components/EloScoreDisplay';
 import EloLevelProgression from './components/EloLevelProgression';
 import EloAnalytics from './components/EloAnalytics';
 import ApiTest from './components/ApiTest';
-
-// Import types
 import { RecentActivity, ELOLevel, Category } from './types';
+import { QuizResults } from './types/api';
 import { quizQuestions } from './data/quizQuestions';
+
+// Verify the imported eloAPI
+console.log('App component - Imported eloAPI:', {
+  eloAPI,
+  hasUpdateScore: 'updateScore' in eloAPI,
+  updateScoreType: typeof eloAPI.updateScore
+});
 
 // Sample data for demonstration
 const sampleCategories: Category[] = [
@@ -136,12 +137,98 @@ const sampleELOLevels: ELOLevel[] = [
   // Additional levels would be defined here
 ];
 
+interface UserData {
+  username: string;
+  userId: number;
+  eloScore: number | null;
+  currentLevel: ELOLevel | null;
+  nextLevel: ELOLevel | null;
+  progressToNextLevel: number;
+  studyStreak: number;
+}
+
 const App: React.FC = () => {
   const [darkMode, setDarkMode] = React.useState(false);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const [currentPage, setCurrentPage] = React.useState('dashboard');
   const [showLogin, setShowLogin] = React.useState(false);
+  const [userData, setUserData] = React.useState<UserData>({
+    username: 'AI_Learner',
+    userId: 1,
+    eloScore: null,
+    currentLevel: null,
+    nextLevel: null,
+    progressToNextLevel: 0,
+    studyStreak: 7,
+  });
+
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  // Helper function to get the appropriate level for a given score
+  const getLevelForScore = (score: number): ELOLevel => {
+    return sampleELOLevels.find(level => score >= level.minScore && score <= level.maxScore) || sampleELOLevels[0];
+  };
+
+  // Helper function to get the next level for a given score
+  const getNextLevelForScore = (score: number): ELOLevel => {
+    const currentLevelIndex = sampleELOLevels.findIndex(level => score >= level.minScore && score <= level.maxScore);
+    return currentLevelIndex < sampleELOLevels.length - 1 ? sampleELOLevels[currentLevelIndex + 1] : sampleELOLevels[currentLevelIndex];
+  };
+
+  // Helper function to calculate progress to next level
+  const calculateProgressToNextLevel = (score: number): number => {
+    const currentLevel = getLevelForScore(score);
+    const nextLevel = getNextLevelForScore(score);
+    
+    if (currentLevel === nextLevel) return 100;
+    
+    const range = nextLevel.minScore - currentLevel.minScore;
+    const progress = score - currentLevel.minScore;
+    return Math.round((progress / range) * 100);
+  };
+
+  // Helper function to calculate points to next level - moved to component level
+  const calculatePointsToNext = () => {
+    if (!userData.nextLevel || !userData.eloScore) return null;
+    return userData.nextLevel.minScore - userData.eloScore;
+  };
+
+  // Fetch initial ELO score when component mounts
+  React.useEffect(() => {
+    const fetchEloScore = async () => {
+      try {
+        console.log('Fetching initial ELO score...');
+        const response = await eloAPI.getScore(1);
+        console.log('Initial ELO score response:', response);
+        
+        if (response.data && response.data.score !== undefined) {
+          const eloScore = response.data.score;
+          console.log('Setting initial ELO score to:', eloScore);
+          
+          setUserData(prev => {
+            const updated: UserData = {
+              ...prev,
+              eloScore,
+              currentLevel: getLevelForScore(eloScore),
+              nextLevel: getNextLevelForScore(eloScore),
+              progressToNextLevel: calculateProgressToNextLevel(eloScore)
+            };
+            console.log('Updated initial user data:', updated);
+            return updated;
+          });
+        } else {
+          console.error('Invalid response structure:', response);
+        }
+      } catch (error) {
+        console.error('Error fetching initial ELO score:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEloScore();
+  }, []);
 
   // Create theme based on dark mode preference
   const theme = createTheme({
@@ -185,21 +272,44 @@ const App: React.FC = () => {
     setDrawerOpen(false);
   };
 
-  // Sample user data
-  const userData = {
-    username: 'AI_Learner',
-    userId: 1,
-    eloScore: 1150,
-    currentLevel: sampleELOLevels[1], // AI Apprentice
-    nextLevel: {
-      name: "ML Practitioner",
-      minScore: 1200,
-      maxScore: 1399,
-      description: "Demonstrating practical ML skills and understanding",
-      badgeIcon: "ml_practitioner_badge.png"
-    },
-    progressToNextLevel: 75, // 75% progress to next level
-    studyStreak: 7,
+  const onComplete = async (results: QuizResults) => {
+    try {
+      console.log('Quiz completed with results:', results);
+      console.log('Current user data before update:', userData);
+      
+      // Get the current ELO score from the backend
+      const currentScoreResponse = await eloAPI.getScore(1);
+      console.log('Current score response:', currentScoreResponse);
+      const currentScore = currentScoreResponse.data.score;
+      console.log('Current ELO score from backend:', currentScore);
+      
+      // The backend automatically updates the ELO score for each question
+      // We just need to get the latest score
+      const response = await eloAPI.getScore(1);
+      console.log('Updated ELO score response:', response);
+      
+      if (response.data && response.data.score !== undefined) {
+        const updatedScore = response.data.score;
+        console.log('New ELO score from backend:', updatedScore);
+        
+        // Update the user data state
+        setUserData(prev => {
+          const updated: UserData = {
+            ...prev,
+            eloScore: updatedScore,
+            currentLevel: getLevelForScore(updatedScore),
+            nextLevel: getNextLevelForScore(updatedScore),
+            progressToNextLevel: calculateProgressToNextLevel(updatedScore)
+          };
+          console.log('Updated user data:', updated);
+          return updated;
+        });
+      } else {
+        console.error('Invalid response structure:', response);
+      }
+    } catch (error) {
+      console.error('Error updating ELO score:', error);
+    }
   };
 
   // Drawer content
@@ -211,7 +321,7 @@ const App: React.FC = () => {
         </Avatar>
         <Typography variant="h6">{userData.username}</Typography>
         <Typography variant="body2" color="text.secondary">
-          {userData.currentLevel.name}
+          {userData.currentLevel?.name}
         </Typography>
       </Box>
       <Divider />
@@ -271,22 +381,45 @@ const App: React.FC = () => {
 
   // Render the appropriate component based on current page
   const renderContent = () => {
+    if (isLoading || !userData.eloScore || !userData.currentLevel || !userData.nextLevel) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <CircularProgress />
+        </Box>
+      );
+    }
+
     switch (currentPage) {
       case 'dashboard':
         return (
-          <Dashboard
-            username={userData.username}
-            eloScore={userData.eloScore}
-            currentLevel={userData.currentLevel}
-            nextLevel={userData.nextLevel}
-            progressToNextLevel={userData.progressToNextLevel}
-            categories={sampleCategories}
-            recentActivity={sampleRecentActivity}
-            studyStreak={userData.studyStreak}
-            onStartQuiz={(categoryId) => handleNavigation('quiz')}
-            onReviewFlashcards={(categoryId) => handleNavigation('flashcards')}
-            onViewProgress={() => handleNavigation('progress')}
-          />
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h4" gutterBottom>Dashboard</Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <EloScoreDisplay
+                  score={userData.eloScore}
+                  level={userData.currentLevel}
+                  progress={userData.progressToNextLevel}
+                  pointsToNext={calculatePointsToNext()}
+                />
+              </Grid>
+              <Grid item xs={12} md={8}>
+                <Dashboard
+                  username={userData.username}
+                  eloScore={userData.eloScore}
+                  currentLevel={userData.currentLevel}
+                  nextLevel={userData.nextLevel}
+                  progressToNextLevel={userData.progressToNextLevel}
+                  categories={sampleCategories}
+                  recentActivity={sampleRecentActivity}
+                  studyStreak={userData.studyStreak}
+                  onStartQuiz={(categoryId) => handleNavigation('quiz')}
+                  onReviewFlashcards={(categoryId) => handleNavigation('flashcards')}
+                  onViewProgress={() => handleNavigation('progress')}
+                />
+              </Grid>
+            </Grid>
+          </Box>
         );
       case 'flashcards':
         return (
@@ -314,10 +447,7 @@ const App: React.FC = () => {
             <Quiz
               categoryId={1}
               userId={userData.userId}
-              onComplete={(results) => {
-                console.log('Quiz completed:', results);
-                // TODO: Update ELO score based on results
-              }}
+              onComplete={onComplete}
               timed={true}
               timeLimit={60}
             />
@@ -401,16 +531,10 @@ const App: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={4}>
               <EloScoreDisplay
-                score={1200}
-                level={{
-                  name: "Intermediate",
-                  minScore: 1000,
-                  maxScore: 1500,
-                  description: "Intermediate level",
-                  badgeIcon: "intermediate-badge"
-                }}
-                progress={65}
-                pointsToNext={150}
+                score={userData.eloScore}
+                level={userData.currentLevel}
+                progress={userData.progressToNextLevel}
+                pointsToNext={calculatePointsToNext()}
               />
             </Grid>
           </Grid>

@@ -6,8 +6,6 @@ import {
   QuizQuestion, 
   QuizAttemptRequest, 
   QuizAttemptResponse,
-  EloScore,
-  EloLevel,
   Category,
   Flashcard,
   UserProgress,
@@ -61,19 +59,22 @@ export const quizAPI = {
   getById: (id: number): Promise<AxiosResponse<ApiResponse<QuizQuestion>>> => 
     api.get(`/quiz_questions/${id}`),
   
-  submitAnswer: (questionId: number, userId: number, selectedOption: 'a' | 'b' | 'c' | 'd'): Promise<AxiosResponse<ApiResponse<QuizAttemptResponse>>> => {
+  submitAnswer: (questionId: number, userId: number, selectedOption: 'a' | 'b' | 'c' | 'd', difficulty: number): Promise<AxiosResponse<ApiResponse<QuizAttemptResponse>>> => {
     console.log('API layer - submitAnswer called with:', {
       questionId,
       userId,
       selectedOption,
+      difficulty,
       typeof_questionId: typeof questionId,
       typeof_userId: typeof userId,
-      typeof_selectedOption: typeof selectedOption
+      typeof_selectedOption: typeof selectedOption,
+      typeof_difficulty: typeof difficulty
     });
     
     const data = {
       user_id: userId,
-      selected_option: selectedOption
+      selected_option: selectedOption,
+      difficulty: difficulty
     };
     
     console.log('API layer - Request data:', JSON.stringify(data));
@@ -84,18 +85,6 @@ export const quizAPI = {
       }
     });
   },
-};
-
-// API endpoints for ELO scores
-export const eloAPI = {
-  getScore: (userId: number): Promise<AxiosResponse<ApiResponse<EloScore>>> => 
-    api.get(`/elo_scores/${userId}`),
-  
-  getHistory: (userId: number): Promise<AxiosResponse<ApiResponse<EloScore[]>>> => 
-    api.get(`/elo_scores/${userId}/history`),
-  
-  getLevels: (): Promise<AxiosResponse<ApiResponse<EloLevel[]>>> => 
-    api.get('/elo_scores/levels'),
 };
 
 // API endpoints for categories

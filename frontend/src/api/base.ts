@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError, AxiosRequestConfig } from 'axios';
 import { ApiResponse, ApiError } from '../types/api';
 
 export class BaseApiService {
@@ -42,30 +42,34 @@ export class BaseApiService {
     );
   }
 
-  protected async request<T>(config: InternalAxiosRequestConfig): Promise<ApiResponse<T>> {
+  protected async request<T>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
     try {
       const response = await this.api.request<T>(config);
       return {
         data: response.data,
         status: response.status,
+        statusText: response.statusText,
+        headers: response.headers
       };
     } catch (error) {
       throw this.handleError(error as AxiosError);
     }
   }
 
-  protected handleError(error: AxiosError): ApiError {
-    if (error.response?.data) {
-      const responseData = error.response.data as { message?: string; errors?: Record<string, string[]> };
-      return {
-        message: responseData.message || 'An error occurred',
-        status: error.response.status,
-        errors: responseData.errors,
-      };
+  protected handleError(error: AxiosError): Error {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('Error response:', error.response.data);
+      return new Error(`Request failed with status ${error.response.status}`);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('Error request:', error.request);
+      return new Error('No response received from server');
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Error message:', error.message);
+      return error;
     }
-    return {
-      message: error.message || 'An error occurred',
-      status: 500,
-    };
   }
 } 

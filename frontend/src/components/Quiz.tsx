@@ -17,8 +17,16 @@ import {
   CircularProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { quizAPI, eloAPI } from '../api';
-import { QuizQuestion as ApiQuizQuestion } from '../types/api';
+import { quizAPI } from '../api';
+import { eloAPI } from '../api/eloAPI';
+import { QuizQuestion as ApiQuizQuestion, QuizResults } from '../types/api';
+
+// Verify the imported eloAPI
+console.log('Quiz component - Imported eloAPI:', {
+  eloAPI,
+  hasUpdateScore: 'updateScore' in eloAPI,
+  updateScoreType: typeof eloAPI.updateScore
+});
 
 const QuizContainer = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -61,29 +69,19 @@ export interface QuizQuestion {
   option_d: string;
   correct_option: 'a' | 'b' | 'c' | 'd';
   explanation: string;
-  category_id: number;
+  category: {
+    id: number;
+    name: string;
+  };
   difficulty: number;
 }
 
 interface QuizProps {
   categoryId: number;
   userId: number;
-  onComplete: (results: QuizResult) => void;
+  onComplete: (results: QuizResults) => void;
   timed?: boolean;
   timeLimit?: number;
-}
-
-export interface QuizResult {
-  totalQuestions: number;
-  correctAnswers: number;
-  score: number;
-  answers: {
-    questionId: string | number;
-    selectedOption: string;
-    isCorrect: boolean;
-    timeTaken: number;
-  }[];
-  totalTime: number;
 }
 
 const Quiz: React.FC<QuizProps> = ({
@@ -94,22 +92,25 @@ const Quiz: React.FC<QuizProps> = ({
   timeLimit = 60,
 }) => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<'a' | 'b' | 'c' | 'd' | null>(null);
+  const [correct, setCorrect] = useState<boolean | null>(null);
+  const [scoreChange, setScoreChange] = useState<number | null>(null);
+  const [explanation, setExplanation] = useState<string>('');
+  const [timeLeft, setTimeLeft] = useState<number>(timeLimit || 0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
-  const [results, setResults] = useState<QuizResult>({
+  const [results, setResults] = useState<QuizResults>({
+    categoryId,
     totalQuestions: 0,
     correctAnswers: 0,
     score: 0,
     answers: [],
-    totalTime: 0,
   });
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
-  const [remainingTime, setRemainingTime] = useState<number>(timeLimit);
 
   const convertApiQuestionToQuizQuestion = (apiQuestion: ApiQuizQuestion): QuizQuestion => {
     return {
@@ -121,7 +122,7 @@ const Quiz: React.FC<QuizProps> = ({
       option_d: apiQuestion.option_d,
       correct_option: apiQuestion.correct_option as 'a' | 'b' | 'c' | 'd',
       explanation: apiQuestion.explanation,
-      category_id: apiQuestion.category_id,
+      category: apiQuestion.category,
       difficulty: apiQuestion.difficulty,
     };
   };
@@ -143,7 +144,7 @@ const Quiz: React.FC<QuizProps> = ({
         setError(`Error connecting to the server: ${errorMessage}`);
         console.error('Error fetching questions:', err);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
@@ -155,7 +156,7 @@ const Quiz: React.FC<QuizProps> = ({
     if (!timed || quizCompleted) return;
 
     const timer = setInterval(() => {
-      setRemainingTime(prev => {
+      setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
           handleTimeUp();
@@ -170,82 +171,85 @@ const Quiz: React.FC<QuizProps> = ({
 
   const handleTimeUp = () => {
     // Auto-submit the quiz when time is up
-    const finalResults = {
-      ...results,
-      totalTime: (Date.now() - startTime) / 1000,
-    };
-    setResults(finalResults);
     setQuizCompleted(true);
-    onComplete(finalResults);
+    onComplete(results);
   };
 
-  const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedOption(event.target.value as 'a' | 'b' | 'c' | 'd' | null);
-  };
-
-  const handleNextQuestion = async () => {
-    if (!selectedOption) return;
-
-    const currentQuestion = questions[currentQuestionIndex];
-    const timeTaken = (Date.now() - questionStartTime) / 1000;
-
+  const handleOptionChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const option = event.target.value as 'a' | 'b' | 'c' | 'd';
+    
+    // Prevent changing answer if already submitted
+    if (showExplanation) return;
+    
+    setSelectedOption(option);
     try {
       const response = await quizAPI.submitAnswer(
-        currentQuestion.id,
+        questions[currentQuestionIndex].id,
         userId,
-        selectedOption
+        option,
+        questions[currentQuestionIndex].difficulty
       );
-
+      
       if (response.status >= 200 && response.status < 300) {
-        const isCorrect = response.data.data.correct;
-        const scoreChange = response.data.data.score_change;
+        const { correct: isCorrect, score_change: scoreChange, explanation: apiExplanation } = response.data.data;
+        const currentExplanation = apiExplanation || questions[currentQuestionIndex].explanation || 'No explanation available.';
         
-        // Update results
-        const updatedResults = {
-          ...results,
-          correctAnswers: isCorrect ? results.correctAnswers + 1 : results.correctAnswers,
+        setCorrect(isCorrect);
+        setScoreChange(scoreChange);
+        setExplanation(currentExplanation);
+        
+        // Update results with the new answer
+        setResults(prev => ({
+          ...prev,
+          correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
+          score: Math.round(((prev.correctAnswers + (isCorrect ? 1 : 0)) / questions.length) * 100),
           answers: [
-            ...results.answers,
+            ...prev.answers,
             {
-              questionId: currentQuestion.id,
-              selectedOption,
-              isCorrect,
-              timeTaken,
-            },
-          ],
-        };
-        setResults(updatedResults);
+              questionId: questions[currentQuestionIndex].id,
+              selectedOption: option,
+              correct: isCorrect,
+              explanation: currentExplanation
+            }
+          ]
+        }));
 
-        if (currentQuestionIndex < questions.length - 1) {
-          setCurrentQuestionIndex(prev => prev + 1);
-          setSelectedOption(null);
-          setShowExplanation(false);
-          setQuestionStartTime(Date.now());
-        } else {
-          // Quiz completed
-          const finalResults = {
-            ...updatedResults,
-            score: Math.round((updatedResults.correctAnswers / questions.length) * 100),
-            totalTime: (Date.now() - startTime) / 1000,
-          };
-          setResults(finalResults);
-          setQuizCompleted(true);
-          onComplete(finalResults);
-        }
-      } else {
-        setError(`Failed to submit answer: ${response.data.data.message || 'Unknown error'}`);
+        setShowExplanation(true);
       }
-    } catch (err) {
-      console.error('Error submitting answer:', err);
-      setError(`Error submitting answer: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } catch (error) {
+      console.error('Error submitting answer:', error);
+      setError('Failed to submit answer. Please try again.');
     }
   };
 
-  const handleCheckAnswer = () => {
-    setShowExplanation(true);
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setSelectedOption(null);
+      setCorrect(null);
+      setScoreChange(null);
+      setExplanation('');
+      setShowExplanation(false);
+      setQuestionStartTime(Date.now());
+    } else {
+      setQuizCompleted(true);
+      onComplete(results);
+    }
   };
 
-  if (loading) {
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+      setSelectedOption(null);
+      setCorrect(null);
+      setScoreChange(null);
+      setExplanation('');
+      setShowExplanation(false);
+      setQuestionStartTime(Date.now());
+    }
+  };
+
+  if (isLoading) {
     return (
       <QuizContainer>
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -284,9 +288,9 @@ const Quiz: React.FC<QuizProps> = ({
           Quiz Results
         </Typography>
         
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', gap: 2, flexDirection: 'column', alignItems: 'center' }}>
           <Chip 
-            label={`Score: ${results.score}%`} 
+            label={`Quiz Score: ${results.score}%`} 
             color={results.score >= 70 ? "success" : results.score >= 50 ? "warning" : "error"} 
             variant="outlined" 
           />
@@ -295,11 +299,13 @@ const Quiz: React.FC<QuizProps> = ({
             color="primary" 
             variant="outlined" 
           />
-          <Chip 
-            label={`Time: ${Math.round(results.totalTime)}s`} 
-            color="secondary" 
-            variant="outlined" 
-          />
+          <Typography variant="body1" color="text.secondary" align="center" sx={{ mt: 2 }}>
+            Total ELO Score Changes:
+          </Typography>
+          <Typography variant="body2" color="text.secondary" align="center">
+            Your ELO score has been updated after each question.
+            Check your profile to see your current ELO score and level.
+          </Typography>
         </Box>
 
         <Alert 
@@ -317,10 +323,9 @@ const Quiz: React.FC<QuizProps> = ({
           Question Summary:
         </Typography>
 
-        {questions.map((question, index) => {
-          const answer = results.answers[index];
+        {results.answers.map((answer, index) => {
           return (
-            <ResultCard key={question.id} variant="outlined">
+            <ResultCard key={answer.questionId} variant="outlined">
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="subtitle2" color="text.secondary">
@@ -328,23 +333,20 @@ const Quiz: React.FC<QuizProps> = ({
                   </Typography>
                   <Chip 
                     size="small"
-                    label={answer.isCorrect ? "Correct" : "Incorrect"} 
-                    color={answer.isCorrect ? "success" : "error"} 
+                    label={answer.correct ? "Correct" : "Incorrect"} 
+                    color={answer.correct ? "success" : "error"} 
                   />
                 </Box>
                 <Typography variant="body1" gutterBottom>
-                  {question.question}
+                  {currentQuestion.question}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Your answer: {answer.selectedOption}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Time taken: {Math.round(answer.timeTaken)}s
+                  Explanation: {answer.explanation}
                 </Typography>
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="body2">
-                  {question.explanation}
-                </Typography>
               </CardContent>
             </ResultCard>
           );
@@ -355,70 +357,150 @@ const Quiz: React.FC<QuizProps> = ({
 
   return (
     <QuizContainer>
-      <ProgressContainer>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            Question {currentQuestionIndex + 1} of {questions.length}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {difficultyStars}
-          </Typography>
+      {isLoading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <CircularProgress />
         </Box>
-        <LinearProgress variant="determinate" value={progress} />
-      </ProgressContainer>
-
-      {timed && (
-        <Box sx={{ mb: 2, textAlign: 'center' }}>
-          <Typography variant="h6" color={remainingTime <= 10 ? 'error' : 'textPrimary'}>
-            Time remaining: {remainingTime}s
+      ) : error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : quizCompleted ? (
+        <Box>
+          <Typography variant="h5" gutterBottom>
+            Quiz Completed!
           </Typography>
+          <Typography variant="body1" gutterBottom>
+            Your score: {results.score}%
+          </Typography>
+          <Typography variant="body1" gutterBottom>
+            Correct answers: {results.correctAnswers} out of {results.totalQuestions}
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="h6" gutterBottom>
+            Answers:
+          </Typography>
+          {results.answers.map((answer, index) => (
+            <Box key={index} mb={2}>
+              <Typography variant="body1">
+                Question {index + 1}: {questions[index].question}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Your answer: {answer.selectedOption.toUpperCase()}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Correct answer: {questions[index].correct_option.toUpperCase()}
+              </Typography>
+              <Box display="flex" alignItems="center" gap={1} mb={1}>
+                <Chip 
+                  size="small"
+                  label={answer.correct ? "Correct" : "Incorrect"} 
+                  color={answer.correct ? "success" : "error"} 
+                />
+              </Box>
+              {answer.explanation && (
+                <Typography variant="body2" color="text.secondary">
+                  Explanation: {answer.explanation}
+                </Typography>
+              )}
+              <Divider sx={{ my: 1 }} />
+            </Box>
+          ))}
         </Box>
-      )}
-
-      <QuestionContainer>
-        <Typography variant="h6" gutterBottom>
-          {currentQuestion.question}
-        </Typography>
-
-        <OptionsContainer>
-          <RadioGroup value={selectedOption} onChange={handleOptionChange}>
-            {['a', 'b', 'c', 'd'].map((option) => (
-              <FormControlLabel
-                key={option}
-                value={option}
-                control={<Radio />}
-                label={currentQuestion[`option_${option}` as keyof ApiQuizQuestion] as string}
-                disabled={showExplanation}
+      ) : (
+        <Box>
+          <ProgressContainer>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </Typography>
+            <LinearProgress 
+              variant="determinate" 
+              value={progress} 
+            />
+          </ProgressContainer>
+          {timed && (
+            <Box display="flex" justifyContent="flex-end" mb={2}>
+              <Chip 
+                label={`Time left: ${timeLeft}s`} 
+                color={timeLeft <= 10 ? "error" : "default"}
               />
-            ))}
-          </RadioGroup>
-        </OptionsContainer>
-
-        {showExplanation && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="text.secondary">
+            </Box>
+          )}
+          <QuestionContainer>
+            <Typography variant="h6" gutterBottom>
+              {currentQuestion.question}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
               {currentQuestion.explanation}
             </Typography>
-          </Box>
-        )}
-      </QuestionContainer>
-
-      <ActionContainer>
-        <Button
-          variant="outlined"
-          onClick={handleCheckAnswer}
-          disabled={!selectedOption || showExplanation}
-        >
-          Check Answer
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleNextQuestion}
-          disabled={!selectedOption}
-        >
-          {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next Question'}
-        </Button>
-      </ActionContainer>
+            <FormControl component="fieldset" sx={{ mt: 2 }}>
+              <RadioGroup
+                value={selectedOption}
+                onChange={handleOptionChange}
+              >
+                <FormControlLabel
+                  value="a"
+                  control={<Radio />}
+                  label={currentQuestion.option_a}
+                />
+                <FormControlLabel
+                  value="b"
+                  control={<Radio />}
+                  label={currentQuestion.option_b}
+                />
+                <FormControlLabel
+                  value="c"
+                  control={<Radio />}
+                  label={currentQuestion.option_c}
+                />
+                <FormControlLabel
+                  value="d"
+                  control={<Radio />}
+                  label={currentQuestion.option_d}
+                />
+              </RadioGroup>
+            </FormControl>
+          </QuestionContainer>
+          {showExplanation && (
+            <ResultCard>
+              <CardContent>
+                <Typography variant="body1" gutterBottom>
+                  {correct ? "Correct!" : "Incorrect"}
+                </Typography>
+                {scoreChange !== null && (
+                  <>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Score change for this question: {scoreChange > 0 ? "+" : ""}{scoreChange}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Note: Your ELO score is updated after each question. The final score will reflect all your accumulated changes.
+                    </Typography>
+                  </>
+                )}
+                <Typography variant="body2" color="text.secondary">
+                  {explanation}
+                </Typography>
+              </CardContent>
+            </ResultCard>
+          )}
+          <ActionContainer>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handlePreviousQuestion}
+              disabled={currentQuestionIndex === 0}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleNextQuestion}
+              disabled={!selectedOption}
+            >
+              {currentQuestionIndex === questions.length - 1 ? "Finish" : "Next"}
+            </Button>
+          </ActionContainer>
+        </Box>
+      )}
     </QuizContainer>
   );
 };

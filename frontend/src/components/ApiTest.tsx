@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { userAPI, quizAPI, eloAPI } from '../api';
+import { userAPI, quizAPI } from '../api';
+import { eloAPI } from '../api/eloAPI';
 import { ApiError } from '../types/api';
 
 const ApiTest: React.FC = () => {

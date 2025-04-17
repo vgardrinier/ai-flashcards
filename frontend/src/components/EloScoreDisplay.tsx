@@ -1,15 +1,15 @@
 // Component to display ELO score and level information
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, LinearProgress, Paper, Grid, Tooltip } from '@mui/material';
+import { Box, Typography, LinearProgress, Paper, Grid, Tooltip, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { ELOLevel } from '../types';
 
 interface EloScoreDisplayProps {
-  score: number;
-  level: ELOLevel;
+  score: number | null;
+  level: ELOLevel | null;
   progress: number;
-  pointsToNext: number;
+  pointsToNext: number | null;
 }
 
 interface LevelBadgeProps {
@@ -88,8 +88,10 @@ function getLevelColor(levelName: string): string {
 const EloScoreDisplay: React.FC<EloScoreDisplayProps> = ({ score, level, progress, pointsToNext }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
   
-  // Animate score counting up
+  // Animate score counting up - moved before conditional return
   useEffect(() => {
+    if (!score) return;
+    
     const duration = 1500; // ms
     const frameDuration = 1000 / 60; // 60fps
     const totalFrames = Math.round(duration / frameDuration);
@@ -109,6 +111,14 @@ const EloScoreDisplay: React.FC<EloScoreDisplayProps> = ({ score, level, progres
     return () => clearInterval(timer);
   }, [score]);
   
+  if (!score || !level) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  
   return (
     <Box>
       <LevelBadge levelName={level.name}>
@@ -125,7 +135,7 @@ const EloScoreDisplay: React.FC<EloScoreDisplayProps> = ({ score, level, progres
       <ProgressContainer>
         <LinearProgress variant="determinate" value={progress} />
         <Typography variant="body2" color="text.secondary" align="center">
-          {pointsToNext} points to next level
+          {pointsToNext !== null ? `${pointsToNext} points to next level` : 'Calculating...'}
         </Typography>
       </ProgressContainer>
     </Box>
