@@ -1,0 +1,12 @@
+FROM postgres:14
+
+# Set environment variables
+ENV POSTGRES_USER=ubuntu
+ENV POSTGRES_PASSWORD=password
+ENV POSTGRES_DB=ai_flashcards_production
+
+# Copy initialization scripts
+COPY ./init-db.sql /docker-entrypoint-initdb.d/
+
+# Expose PostgreSQL port
+EXPOSE 5432

@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  flashcard: one
+  times_reviewed: 1
+  last_reviewed: 2025-04-16 06:48:34
+  ease_factor: 1.5
+  next_review: 2025-04-16 06:48:34
+
+two:
+  user: two
+  flashcard: two
+  times_reviewed: 1
+  last_reviewed: 2025-04-16 06:48:34
+  ease_factor: 1.5
+  next_review: 2025-04-16 06:48:34
