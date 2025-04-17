@@ -15,69 +15,82 @@ AI Flashcards is a comprehensive learning application designed to help you maste
 
 ## Technology Stack
 
-- **Frontend**: React with TypeScript, Material-UI
-- **Backend**: Node.js, Express
-- **Database**: MongoDB
+- **Frontend**: React with TypeScript, Material-UI, Chart.js
+- **Backend**: Ruby on Rails API
+- **Database**: PostgreSQL
 - **Authentication**: JWT-based user authentication
+
+## Project Structure
+
+```
+ai_flashcards/
+├── frontend/              # React + TypeScript frontend
+│   ├── src/              # Source code
+│   │   ├── components/   # React components
+│   │   ├── api/         # API integration
+│   │   └── types/       # TypeScript types
+│   └── public/          # Static assets
+├── rails_backend/        # Rails API backend
+│   ├── app/             # Application code
+│   │   ├── controllers/ # API controllers
+│   │   ├── models/      # Database models
+│   │   └── services/    # Business logic
+│   └── config/          # Configuration files
+└── docs/                # Documentation
+```
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js (v16+)
-- MongoDB (v4.4+)
+- Ruby (v3.0+)
+- PostgreSQL (v12+)
 - npm or yarn
 
 ### Installation
 
 1. Clone the repository
-2. Install backend dependencies:
+2. Install frontend dependencies:
    ```
-   cd ai_flashcards/backend
+   cd ai_flashcards/frontend
    npm install
    ```
-3. Install frontend dependencies:
+3. Install backend dependencies:
    ```
-   cd ../frontend
-   npm install
+   cd ../rails_backend
+   bundle install
    ```
 
 ### Configuration
 
-1. Create a `.env` file in the backend directory with:
+1. Create a `.env` file in the frontend directory with:
    ```
-   PORT=5000
-   MONGO_URI=mongodb://localhost:27017/ai_flashcards
-   JWT_SECRET=your_jwt_secret_key
-   NODE_ENV=development
+   REACT_APP_API_URL=http://localhost:3001/api/v1
    ```
 
-2. Create a `.env` file in the frontend directory with:
+2. Configure the Rails backend:
    ```
-   REACT_APP_API_URL=http://localhost:5000/api
+   cd rails_backend
+   cp config/database.yml.example config/database.yml
+   # Edit database.yml with your PostgreSQL credentials
    ```
 
 ### Running the Application
 
-1. Start the backend server:
+1. Start the Rails backend:
    ```
-   cd backend
-   npm start
-   ```
-
-2. Initialize the database (first time only):
-   ```
-   node src/scripts/initEloLevels.js
-   node src/scripts/importContent.js
+   cd rails_backend
+   rails server -p 3001
    ```
 
-3. Start the frontend development server:
+2. Start the frontend development server:
    ```
    cd frontend
    npm start
    ```
 
-4. Access the application at `http://localhost:3000`
+3. Access the application at `http://localhost:3000`
 
 ## Usage Guide
 
@@ -132,15 +145,20 @@ The application uses a sophisticated ELO scoring system adapted for educational 
 
 ## Deployment
 
-See the [Deployment Guide](deployment_guide.md) for detailed instructions on deploying the application to production environments.
+See the [Deployment Guide](DEPLOYMENT.md) for detailed instructions on deploying the application to production environments.
 
 ## Testing
 
 Run the automated tests to verify the application functionality:
 
 ```
-cd backend
-node src/tests/apiTests.js
+# Frontend tests
+cd frontend
+npm test
+
+# Backend tests
+cd rails_backend
+bundle exec rspec
 ```
 
 ## License
@@ -149,6 +167,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Acknowledgments
 
-- Built with React, Node.js, and MongoDB
+- Built with React, TypeScript, and Ruby on Rails
 - Designed to help aspiring CTOs master AI technologies
 - Created to provide a structured learning path for AI mastery
