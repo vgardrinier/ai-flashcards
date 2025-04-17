@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="AI Flashcards - Learn AI, LLMs, and agents to become a top tech startup CTO" />
+  <title>AI Flashcards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --primary-light: #dbeafe;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --error: #ef4444;
+      --error-light: #fee2e2;
+      --neutral: #6b7280;
+      --neutral-light: #f3f4f6;
+      --dark: #1f2937;
+      --white: #ffffff;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --radius: 0.5rem;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background-color: #f9fafb;
+      color: var(--dark);
+      line-height: 1.5;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+    
+    .hero {
+      background: linear-gradient(to right, #2563eb, #3b82f6);
+      color: white;
+      padding: 4rem 0;
+      text-align: center;
+    }
+    
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    
+    .hero p {
+      font-size: 1.25rem;
+      max-width: 800px;
+      margin: 0 auto 2rem;
+      opacity: 0.9;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      background-color: white;
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: var(--radius);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+    
+    .cta-button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .section {
+      padding: 4rem 0;
+    }
+    
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 2rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .card h3 {
+      color: var(--primary);
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .feature-card {
+      background-color: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.5rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .feature-card h3 {
+      color: var(--primary);
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      font-size: 1.25rem;
+    }
+    
+    .feature-card p {
+      color: var(--neutral);
+      flex-grow: 1;
+    }
+    
+    .feature-icon {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    
+    .levels {
+      background-color: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .levels h3 {
+      color: var(--primary);
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    
+    .level-item {
+      padding: 1rem;
+      border-radius: var(--radius);
+      background-color: var(--neutral-light);
+      transition: transform 0.2s ease;
+    }
+    
+    .level-item:hover {
+      transform: translateY(-3px);
+      background-color: var(--primary-light);
+    }
+    
+    .level-name {
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+    }
+    
+    .level-range {
+      font-size: 0.875rem;
+      color: var(--neutral);
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 2rem 0;
+      background-color: var(--neutral-light);
+      margin-top: 3rem;
+    }
+    
+    .footer p {
+      color: var(--neutral);
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      overflow-y: auto;
+    }
+    
+    .modal-content {
+      background-color: white;
+      margin: 5% auto;
+      padding: 2rem;
+      border-radius: var(--radius);
+      max-width: 700px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    
+    .close-button {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: var(--neutral);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+    
+    .close-button:hover {
+      background-color: var(--neutral-light);
+      color: var(--dark);
+    }
+    
+    .modal-title {
+      color: var(--primary);
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      font-size: 1.75rem;
+      text-align: center;
+    }
+    
+    .level-badge {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      background-color: var(--primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .level-badge-icon {
+      width: 20px;
+      height: 20px;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+    
+    .elo-display {
+      text-align: center;
+      padding: 1.5rem;
+      background-color: var(--primary-light);
+      border-radius: var(--radius);
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    
+    .elo-score {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+    }
+    
+    .elo-level {
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+    
+    .progress-container {
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 9999px;
+      margin-top: 0.75rem;
+      overflow: hidden;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background-color: var(--primary);
+      border-radius: 9999px;
+      width: 25%;
+    }
+    
+    .demo-progress {
+      display: flex;
+      justify-content: center;
+      margin: 1.5rem 0;
+    }
+    
+    .demo-progress-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--neutral-light);
+      margin: 0 5px;
+      transition: all 0.2s ease;
+    }
+    
+    .demo-progress-dot.active {
+      background-color: var(--primary);
+      transform: scale(1.2);
+    }
+    
+    .question-card {
+      background-color: var(--neutral-light);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .question-text {
+      font-weight: 600;
+      font-size: 1.125rem;
+      margin-bottom: 1.5rem;
+      color: var(--dark);
+    }
+    
+    .options-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .option-label {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      border-radius: var(--radius);
+      background-color: white;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .option-label:hover {
+      border-color: var(--primary-light);
+      background-color: var(--primary-light);
+    }
+    
+    .option-label.selected {
+      border-color: var(--primary);
+      background-color: var(--primary-light);
+    }
+    
+    .option-label.correct {
+      border-color: var(--success);
+      background-color: var(--success-light);
+    }
+    
+    .option-label.incorrect {
+      border-color: var(--error);
+      background-color: var(--error-light);
+    }
+    
+    .option-input {
+      margin-right: 1rem;
+    }
+    
+    .feedback {
+      padding: 1rem;
+      border-radius: var(--radius);
+      margin-top: 1rem;
+      display: none;
+      font-weight: 500;
+    }
+    
+    .feedback.correct {
+      background-color: var(--success-light);
+      color: var(--success);
+      border-left: 4px solid var(--success);
+    }
+    
+    .feedback.incorrect {
+      background-color: var(--error-light);
+      color: var(--error);
+      border-left: 4px solid var(--error);
+    }
+    
+    .explanation {
+      margin-top: 1rem;
+      padding: 1rem;
+      background-color: var(--neutral-light);
+      border-radius: var(--radius);
+      display: none;
+      font-size: 0.9375rem;
+      color: var(--dark);
+    }
+    
+    .action-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.5rem;
+    }
+    
+    .action-button {
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      font-size: 0.9375rem;
+    }
+    
+    .primary-button {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    .primary-button:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .primary-button:disabled {
+      background-color: var(--neutral-light);
+      color: var(--neutral);
+      cursor: not-allowed;
+    }
+    
+    .secondary-button {
+      background-color: var(--neutral-light);
+      color: var(--dark);
+    }
+    
+    .secondary-button:hover {
+      background-color: #e5e7eb;
+    }
+    
+    .secondary-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .navigation-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1.5rem;
+    }
+    
+    .profile-button {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background-color: white;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .profile-button:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+    
+    /* Profile Modal */
+    .profile-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      overflow-y: auto;
+    }
+    
+    .profile-content {
+      background-color: white;
+      margin: 5% auto;
+      padding: 2rem;
+      border-radius: var(--radius);
+      max-width: 800px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+    
+    .profile-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      margin-right: 1.5rem;
+    }
+    
+    .profile-info h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .profile-level {
+      display: inline-block;
+      background-color: var(--primary);
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+    
+    .profile-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--neutral-light);
+      margin-bottom: 1.5rem;
+    }
+    
+    .profile-tab {
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s ease;
+    }
+    
+    .profile-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    
+    .profile-tab:hover:not(.active) {
+      color: var(--primary);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background-color: var(--neutral-light);
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--neutral);
+    }
+    
+    .chart-container {
+      height: 250px;
+      margin-bottom: 2rem;
+      background-color: var(--neutral-light);
+      border-radius: var(--radius);
+      padding: 1rem;
+      position: relative;
+    }
+    
+    .chart-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--neutral);
+    }
+    
+    .strengths-weaknesses {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    
+    .strength-card, .weakness-card {
+      background-color: var(--neutral-light);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    
+    .strength-card h3, .weakness-card h3 {
+      font-size: 1.125rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    .strength-card h3 {
+      color: var(--success);
+    }
+    
+    .weakness-card h3 {
+      color: var(--error);
+    }
+    
+    .topic-progress {
+      margin-bottom: 0.75rem;
+    }
+    
+    .topic-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+      font-size: 0.875rem;
+    }
+    
+    .topic-name {
+      font-weight: 500;
+    }
+    
+    .topic-score {
+      font-weight: 600;
+    }
+    
+    .topic-bar {
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.5);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    
+    .topic-progress-bar {
+      height: 100%;
+      border-radius: 9999px;
+    }
+    
+    .strength-card .topic-progress-bar {
+      background-color: var(--success);
+    }
+    
+    .weakness-card .topic-progress-bar {
+      background-color: var(--error);
+    }
+    
+    @media (max-width: 768px) {
+      .hero {
+        padding: 3rem 0;
+      }
+      
+      .hero h1 {
+        font-size: 2.25rem;
+      }
+      
+      .hero p {
+        font-size: 1.125rem;
+      }
+      
+      .section {
+        padding: 3rem 0;
+      }
+      
+      .section-title {
+        font-size: 1.75rem;
+      }
+      
+      .modal-content, .profile-content {
+        margin: 0;
+        border-radius: 0;
+        min-height: 100vh;
+        max-width: 100%;
+      }
+      
+      .strengths-weaknesses {
+        grid-template-columns: 1fr;
+      }
+      
+      .profile-header {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .profile-avatar {
+        margin-right: 0;
+        margin-bottom: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="container">
+      <h1>AI Flashcards</h1>
+      <p>Master AI, LLMs, and agents to become a top tech startup CTO</p>
+      <button id="launch-button" class="cta-button">Try Demo</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <section class="section">
+      <h2 class="section-title">About the Application</h2>
+      <div class="card">
+        <p>
+          AI Flashcards is a comprehensive learning application designed to help you master AI, LLMs, and agent technologies to become a top-tier tech startup CTO. The application features hundreds of expert-crafted flashcards and quiz questions across key AI domains, with an advanced ELO scoring system that tracks your progress through 12 named tiers from "Novice Explorer" to "Tier-1 AI CTO".
+        </p>
+      </div>
+    </section>
+    
+    <section class="section">
+      <h2 class="section-title">Key Features</h2>
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon">📚</div>
+          <h3>Comprehensive Content</h3>
+          <p>40+ flashcards and 48+ quiz questions covering AI Fundamentals, Large Language Models, AI Agents, and Tech CTO Skills</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📈</div>
+          <h3>ELO Scoring System</h3>
+          <p>Dynamic scoring that adjusts based on question difficulty and your performance</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <h3>Named Progression Tiers</h3>
+          <p>12 achievement levels from beginner to expert with custom descriptions</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🔄</div>
+          <h3>Spaced Repetition</h3>
+          <p>Smart algorithm that prioritizes content you need to review</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Performance Analytics</h3>
+          <p>Detailed statistics and progress tracking</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">📱</div>
+          <h3>Responsive Design</h3>
+          <p>Works seamlessly on desktop and mobile devices</p>
+        </div>
+      </div>
+    </section>
+    
+    <section class="section">
+      <h2 class="section-title">ELO Scoring System</h2>
+      <div class="levels">
+        <h3>Level Tiers</h3>
+        <div class="level-grid">
+          <div class="level-item">
+            <div class="level-name">Novice Explorer</div>
+            <div class="level-range">0-999 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">AI Apprentice</div>
+            <div class="level-range">1000-1199 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">ML Practitioner</div>
+            <div class="level-range">1200-1399 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">Deep Learning Enthusiast</div>
+            <div class="level-range">1400-1599 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">NLP Specialist</div>
+            <div class="level-range">1600-1799 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">AI Systems Architect</div>
+            <div class="level-range">1800-1999 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">Agent Engineer</div>
+            <div class="level-range">2000-2199 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">Technical AI Leader</div>
+            <div class="level-range">2200-2399 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">AI Startup Strategist</div>
+            <div class="level-range">2400-2599 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">AI Innovation Director</div>
+            <div class="level-range">2600-2799 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">Senior AI Executive</div>
+            <div class="level-range">2800-2999 points</div>
+          </div>
+          <div class="level-item">
+            <div class="level-name">Tier-1 AI CTO</div>
+            <div class="level-range">3000+ points</div>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <div class="cta" style="text-align: center; margin: 3rem 0;">
+      <p>Ready to start your journey to becoming a Tier-1 AI CTO?</p>
+      <button id="launch-button-bottom" class="cta-button">Try Demo</button>
+    </div>
+  </div>
+  
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 AI Flashcards. All rights reserved.</p>
+    </div>
+  </footer>
+  
+  <!-- Demo Modal -->
+  <div id="demo-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-button" id="close-modal">&times;</span>
+      <div class="level-badge">
+        <span class="level-badge-icon">🏆</span>
+        <span id="level-badge-text">AI Apprentice</span>
+      </div>
+      <h2 class="modal-title">AI Flashcards Demo</h2>
+      
+      <div class="elo-display">
+        <div class="elo-score" id="elo-score">1000</div>
+        <div class="elo-level" id="elo-level">AI Apprentice</div>
+        <div class="progress-container">
+          <div class="progress-bar" id="level-progress"></div>
+        </div>
+      </div>
+      
+      <div class="demo-progress" id="question-progress">
+        <div class="demo-progress-dot active"></div>
+        <div class="demo-progress-dot"></div>
+        <div class="demo-progress-dot"></div>
+        <div class="demo-progress-dot"></div>
+        <div class="demo-progress-dot"></div>
+      </div>
+      
+      <div class="question-card">
+        <div class="question-text" id="question-text">
+          What is the key innovation in transformer models that enables them to process sequences more efficiently than RNNs?
+        </div>
+        
+        <div class="options-container" id="options-container">
+          <!-- Options will be dynamically generated -->
+        </div>
+        
+        <div class="feedback correct" id="feedback-correct">
+          ✓ Correct! Self-attention mechanisms are the key innovation in transformer models.
+        </div>
+        
+        <div class="feedback incorrect" id="feedback-incorrect">
+          ✗ Incorrect. The correct answer is: Self-attention mechanisms.
+        </div>
+        
+        <div class="explanation" id="explanation">
+          Transformer models use self-attention mechanisms to weigh the importance of different words in a sequence relative to each other, allowing them to process the entire sequence in parallel rather than sequentially like RNNs. This enables more efficient training and better handling of long-range dependencies.
+        </div>
+        
+        <div class="action-buttons">
+          <button class="action-button primary-button" id="check-answer-btn">Check Answer</button>
+          <button class="action-button secondary-button" id="show-explanation-btn">Show Explanation</button>
+        </div>
+        
+        <div class="navigation-buttons">
+          <button class="action-button secondary-button" id="prev-btn">Previous</button>
+          <button class="action-button primary-button" id="next-btn">Next</button>
+        </div>
+      </div>
+      
+      <button class="profile-button" id="profile-button">View Profile</button>
+      
+      <p style="text-align: center; margin-top: 1.5rem; color: var(--neutral); font-size: 0.875rem;">
+        This is a limited demo. The full application includes 40+ flashcards, 48+ quiz questions, and complete ELO scoring functionality.
+      </p>
+    </div>
+  </div>
+  
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="profile-modal">
+    <div class="profile-content">
+      <span class="close-button" id="close-profile">&times;</span>
+      
+      <div class="profile-header">
+        <div class="profile-avatar">U</div>
+        <div class="profile-info">
+          <h2>Your Profile</h2>
+          <div class="profile-level">AI Apprentice</div>
+        </div>
+      </div>
+      
+      <div class="profile-tabs">
+        <div class="profile-tab active" data-tab="overview">Overview</div>
+        <div class="profile-tab" data-tab="progress">Progress</div>
+        <div class="profile-tab" data-tab="analysis">Strengths & Weaknesses</div>
+      </div>
+      
+      <div class="tab-content active" id="overview-tab">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-value">1000</div>
+            <div class="stat-label">Current ELO</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">5</div>
+            <div class="stat-label">Questions Answered</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">80%</div>
+            <div class="stat-label">Accuracy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">2</div>
+            <div class="stat-label">Days Streak</div>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <div class="chart-placeholder">ELO Score Evolution Chart</div>
+        </div>
+        
+        <div class="levels">
+          <h3>Your Progress</h3>
+          <div class="level-grid">
+            <div class="level-item" style="background-color: var(--primary-light);">
+              <div class="level-name">AI Apprentice</div>
+              <div class="level-range">1000-1199 points</div>
+            </div>
+            <div class="level-item">
+              <div class="level-name">ML Practitioner</div>
+              <div class="level-range">1200-1399 points</div>
+            </div>
+            <div class="level-item">
+              <div class="level-name">Deep Learning Enthusiast</div>
+              <div class="level-range">1400-1599 points</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tab-content" id="progress-tab">
+        <div class="chart-container">
+          <div class="chart-placeholder">Weekly Progress Chart</div>
+        </div>
+        
+        <div class="levels">
+          <h3>Topic Progress</h3>
+          <div class="topic-progress">
+            <div class="topic-header">
+              <div class="topic-name">AI Fundamentals</div>
+              <div class="topic-score">75%</div>
+            </div>
+            <div class="topic-bar">
+              <div class="topic-progress-bar" style="width: 75%; background-color: var(--primary);"></div>
+            </div>
+          </div>
+          
+          <div class="topic-progress">
+            <div class="topic-header">
+              <div class="topic-name">Large Language Models</div>
+              <div class="topic-score">60%</div>
+            </div>
+            <div class="topic-bar">
+              <div class="topic-progress-bar" style="width: 60%; background-color: var(--primary);"></div>
+            </div>
+          </div>
+          
+          <div class="topic-progress">
+            <div class="topic-header">
+              <div class="topic-name">AI Agents</div>
+              <div class="topic-score">40%</div>
+            </div>
+            <div class="topic-bar">
+              <div class="topic-progress-bar" style="width: 40%; background-color: var(--primary);"></div>
+            </div>
+          </div>
+          
+          <div class="topic-progress">
+            <div class="topic-header">
+              <div class="topic-name">Tech CTO Skills</div>
+              <div class="topic-score">25%</div>
+            </div>
+            <div class="topic-bar">
+              <div class="topic-progress-bar" style="width: 25%; background-color: var(--primary);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="tab-content" id="analysis-tab">
+        <div class="strengths-weaknesses">
+          <div class="strength-card">
+            <h3>Your Strengths</h3>
+            
+            <div class="topic-progress">
+              <div class="topic-header">
+                <div class="topic-name">Neural Networks</div>
+                <div class="topic-score">90%</div>
+              </div>
+              <div class="topic-bar">
+                <div class="topic-progress-bar" style="width: 90%;"></div>
+              </div>
+            </div>
+            
+            <div class="topic-progress">
+              <div class="topic-header">
+                <div class="topic-name">Transformer Models</div>
+                <div class="topic-score">85%</div>
+              </div>
+              <div class="topic-bar">
+                <div class="topic-progress-bar" style="width: 85%;"></div>
+              </div>
+            </div>
+            
+            <div class="topic-progress">
+              <div class="topic-header">
+                <div class="topic-name">Supervised Learning</div>
+                <div class="topic-score">80%</div>
+              </div>
+              <div class="topic-bar">
+                <div class="topic-progress-bar" style="width: 80%;"></div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="weakness-card">
+            <h3>Areas for Improvement</h3>
+            
+            <div class="topic-progress">
+              <div class="topic-header">
+                <div class="topic-name">AI Infrastructure</div>
+                <div class="topic-score">40%</div>
+              </div>
+              <div class="topic-bar">
+                <div class="topic-progress-bar" style="width: 40%;"></div>
+              </div>
+            </div>
+            
+            <div class="topic-progress">
+              <div class="topic-header">
+                <div class="topic-name">Agent Planning</div>
+                <div class="topic-score">35%</div>
+              </div>
+              <div class="topic-bar">
+                <div class="topic-progress-bar" style="width: 35%;"></div>
+              </div>
+            </div>
+            
+            <div class="topic-progress">
+              <div class="topic-header">
+                <div class="topic-name">AI Ethics</div>
+                <div class="topic-score">30%</div>
+              </div>
+              <div class="topic-bar">
+                <div class="topic-progress-bar" style="width: 30%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Demo questions data
+      const demoQuestions = [
+        {
+          question: "What is the key innovation in transformer models that enables them to process sequences more efficiently than RNNs?",
+          options: [
+            { text: "Self-attention mechanisms", correct: true },
+            { text: "Convolutional filters", correct: false },
+            { text: "Gated recurrent units", correct: false },
+            { text: "Bidirectional encoding", correct: false }
+          ],
+          explanation: "Transformer models use self-attention mechanisms to weigh the importance of different words in a sequence relative to each other, allowing them to process the entire sequence in parallel rather than sequentially like RNNs. This enables more efficient training and better handling of long-range dependencies."
+        },
+        {
+          question: "What is the difference between supervised and unsupervised learning?",
+          options: [
+            { text: "Supervised learning uses labeled data, while unsupervised learning works with unlabeled data", correct: true },
+            { text: "Supervised learning requires human oversight, while unsupervised learning runs autonomously", correct: false },
+            { text: "Supervised learning is used for classification, while unsupervised learning is used for regression", correct: false },
+            { text: "Supervised learning is more accurate, while unsupervised learning is faster", correct: false }
+          ],
+          explanation: "In supervised learning, the algorithm learns from labeled training data, making predictions or decisions based on examples. Unsupervised learning works with unlabeled data, finding patterns or structures without explicit guidance."
+        },
+        {
+          question: "What is the role of an AI agent's planning module?",
+          options: [
+            { text: "To create sequences of actions to achieve goals", correct: true },
+            { text: "To process sensory input from the environment", correct: false },
+            { text: "To learn from past experiences", correct: false },
+            { text: "To communicate with other agents", correct: false }
+          ],
+          explanation: "The planning module in an AI agent is responsible for determining the sequence of actions needed to achieve a goal. It considers the current state, desired outcome, and available actions to create an efficient plan, often using techniques like hierarchical planning or Monte Carlo Tree Search."
+        },
+        {
+          question: "What is the primary challenge in scaling AI infrastructure for a growing startup?",
+          options: [
+            { text: "Balancing cost efficiency with performance requirements", correct: true },
+            { text: "Finding qualified AI engineers", correct: false },
+            { text: "Maintaining backward compatibility", correct: false },
+            { text: "Securing intellectual property rights", correct: false }
+          ],
+          explanation: "As AI startups grow, they must balance the increasing computational demands of their models with budget constraints. This involves strategic decisions about cloud vs. on-premises resources, optimizing model efficiency, and implementing cost management practices while ensuring the infrastructure can support business needs."
+        },
+        {
+          question: "What is prompt engineering in the context of LLMs?",
+          options: [
+            { text: "The practice of designing effective inputs to guide LLM outputs", correct: true },
+            { text: "The process of optimizing model training time", correct: false },
+            { text: "A technique for reducing model size", correct: false },
+            { text: "A method for evaluating model performance", correct: false }
+          ],
+          explanation: "Prompt engineering involves crafting inputs to large language models to elicit desired outputs. This includes techniques like few-shot learning, chain-of-thought prompting, and system prompts that provide context, constraints, or examples to guide the model's responses."
+        }
+      ];
+      
+      // DOM elements
+      const modal = document.getElementById('demo-modal');
+      const launchButton = document.getElementById('launch-button');
+      const launchButtonBottom = document.getElementById('launch-button-bottom');
+      const closeModal = document.getElementById('close-modal');
+      const showExplanationBtn = document.getElementById('show-explanation-btn');
+      const nextBtn = document.getElementById('next-btn');
+      const prevBtn = document.getElementById('prev-btn');
+      const checkAnswerBtn = document.getElementById('check-answer-btn');
+      const profileButton = document.getElementById('profile-button');
+      const profileModal = document.getElementById('profile-modal');
+      const closeProfile = document.getElementById('close-profile');
+      const profileTabs = document.querySelectorAll('.profile-tab');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      // State variables
+      let currentCardIndex = 0;
+      let answerSelected = false;
+      let answerChecked = false;
+      let currentScore = 1000;
+      let explanationVisible = false;
+      
+      // Initialize the demo
+      function initDemo() {
+        currentCardIndex = 0;
+        currentScore = 1000;
+        updateCard();
+        updateEloDisplay();
+        updateProgressDots();
+      }
+      
+      // Update the current card
+      function updateCard() {
+        const card = demoQuestions[currentCardIndex];
+        
+        // Update question text
+        document.getElementById('question-text').textContent = card.question;
+        
+        // Reset state
+        document.getElementById('feedback-correct').style.display = 'none';
+        document.getElementById('feedback-incorrect').style.display = 'none';
+        document.getElementById('explanation').style.display = 'none';
+        showExplanationBtn.textContent = 'Show Explanation';
+        showExplanationBtn.disabled = true;
+        checkAnswerBtn.disabled = true;
+        explanationVisible = false;
+        answerSelected = false;
+        answerChecked = false;
+        
+        // Generate options
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+        
+        card.options.forEach((option, index) => {
+          const label = document.createElement('label');
+          label.className = 'option-label';
+          if (option.correct) {
+            label.dataset.correct = 'true';
+          }
+          
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = 'q' + (currentCardIndex + 1);
+          input.className = 'option-input';
+          
+          label.appendChild(input);
+          label.appendChild(document.createTextNode(option.text));
+          optionsContainer.appendChild(label);
+          
+          // Add event listener
+          label.addEventListener('click', function() {
+            if (answerChecked) return;
+            
+            // Remove selected class from all options
+            document.querySelectorAll('.option-label').forEach(l => {
+              l.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked option
+            this.classList.add('selected');
+            this.querySelector('input').checked = true;
+            answerSelected = true;
+            checkAnswerBtn.disabled = false;
+          });
+        });
+        
+        // Update explanation text
+        document.getElementById('explanation').textContent = card.explanation;
+        
+        // Update navigation buttons
+        prevBtn.disabled = currentCardIndex === 0;
+        nextBtn.disabled = !answerChecked;
+      }
+      
+      // Update ELO display
+      function updateEloDisplay() {
+        document.getElementById('elo-score').textContent = currentScore;
+        
+        // Update level
+        let level = 'Novice Explorer';
+        let progressPercentage = 0;
+        
+        if (currentScore < 1000) {
+          level = 'Novice Explorer';
+          progressPercentage = (currentScore / 1000) * 100;
+        } else if (currentScore < 1200) {
+          level = 'AI Apprentice';
+          progressPercentage = ((currentScore - 1000) / 200) * 100;
+        } else if (currentScore < 1400) {
+          level = 'ML Practitioner';
+          progressPercentage = ((currentScore - 1200) / 200) * 100;
+        } else if (currentScore < 1600) {
+          level = 'Deep Learning Enthusiast';
+          progressPercentage = ((currentScore - 1400) / 200) * 100;
+        } else if (currentScore < 1800) {
+          level = 'NLP Specialist';
+          progressPercentage = ((currentScore - 1600) / 200) * 100;
+        }
+        
+        document.getElementById('elo-level').textContent = level;
+        document.getElementById('level-badge-text').textContent = level;
+        document.getElementById('level-progress').style.width = progressPercentage + '%';
+      }
+      
+      // Update progress dots
+      function updateProgressDots() {
+        const dots = document.querySelectorAll('.demo-progress-dot');
+        dots.forEach((dot, index) => {
+          dot.classList.toggle('active', index === currentCardIndex);
+        });
+      }
+      
+      // Check answer
+      function checkAnswer() {
+        if (!answerSelected || answerChecked) return;
+        
+        const selectedOption = document.querySelector('.option-label.selected');
+        const isCorrect = selectedOption && selectedOption.dataset.correct === 'true';
+        
+        // Show feedback
+        document.getElementById('feedback-correct').style.display = isCorrect ? 'block' : 'none';
+        document.getElementById('feedback-incorrect').style.display = isCorrect ? 'none' : 'block';
+        
+        // Mark options
+        document.querySelectorAll('.option-label').forEach(label => {
+          if (label.dataset.correct === 'true') {
+            label.classList.add('correct');
+          } else if (label === selectedOption && !isCorrect) {
+            label.classList.add('incorrect');
+          }
+        });
+        
+        // Update score with animation
+        if (isCorrect) {
+          animateScoreChange(currentScore, currentScore + 25);
+          currentScore += 25;
+        } else {
+          animateScoreChange(currentScore, currentScore - 15);
+          currentScore = Math.max(currentScore - 15, 0);
+        }
+        
+        // Enable explanation and navigation
+        showExplanationBtn.disabled = false;
+        nextBtn.disabled = false;
+        
+        // Mark answer as checked
+        answerChecked = true;
+      }
+      
+      // Animate score change
+      function animateScoreChange(fromScore, toScore) {
+        const eloDisplay = document.getElementById('elo-score');
+        const duration = 1000; // ms
+        const steps = 20;
+        const stepDuration = duration / steps;
+        const scoreStep = (toScore - fromScore) / steps;
+        let currentStep = 0;
+        
+        const interval = setInterval(() => {
+          currentStep++;
+          eloDisplay.textContent = Math.round(fromScore + scoreStep * currentStep);
+          
+          if (currentStep >= steps) {
+            clearInterval(interval);
+            eloDisplay.textContent = toScore;
+            updateEloDisplay();
+          }
+        }, stepDuration);
+      }
+      
+      // Toggle explanation
+      function toggleExplanation() {
+        const explanation = document.getElementById('explanation');
+        
+        if (!explanationVisible) {
+          explanation.style.display = 'block';
+          showExplanationBtn.textContent = 'Hide Explanation';
+        } else {
+          explanation.style.display = 'none';
+          showExplanationBtn.textContent = 'Show Explanation';
+        }
+        
+        explanationVisible = !explanationVisible;
+      }
+      
+      // Event listeners
+      launchButton.addEventListener('click', function() {
+        modal.style.display = 'block';
+        initDemo();
+      });
+      
+      launchButtonBottom.addEventListener('click', function() {
+        modal.style.display = 'block';
+        initDemo();
+      });
+      
+      closeModal.addEventListener('click', function() {
+        modal.style.display = 'none';
+      });
+      
+      window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+        if (event.target === profileModal) {
+          profileModal.style.display = 'none';
+        }
+      });
+      
+      checkAnswerBtn.addEventListener('click', checkAnswer);
+      
+      showExplanationBtn.addEventListener('click', toggleExplanation);
+      
+      nextBtn.addEventListener('click', function() {
+        if (currentCardIndex < demoQuestions.length - 1) {
+          currentCardIndex++;
+          updateCard();
+          updateProgressDots();
+        }
+      });
+      
+      prevBtn.addEventListener('click', function() {
+        if (currentCardIndex > 0) {
+          currentCardIndex--;
+          updateCard();
+          updateProgressDots();
+        }
+      });
+      
+      profileButton.addEventListener('click', function() {
+        profileModal.style.display = 'block';
+      });
+      
+      closeProfile.addEventListener('click', function() {
+        profileModal.style.display = 'none';
+      });
+      
+      // Profile tabs
+      profileTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          // Remove active class from all tabs
+          profileTabs.forEach(t => t.classList.remove('active'));
+          
+          // Add active class to clicked tab
+          this.classList.add('active');
+          
+          // Hide all tab contents
+          tabContents.forEach(content => content.classList.remove('active'));
+          
+          // Show selected tab content
+          const tabId = this.dataset.tab + '-tab';
+          document.getElementById(tabId).classList.add('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
