@@ -8,6 +8,9 @@ Rails.application.routes.draw do
       resources :flashcards, only: [:index, :show, :create, :update]
       
       resources :quiz_questions, only: [:index, :show, :create] do
+        collection do
+          post 'generate'
+        end
         member do
           post 'attempt'
         end

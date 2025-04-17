@@ -93,6 +93,10 @@ GEM
       irb (~> 1.10)
       reline (>= 0.3.8)
     diff-lcs (1.6.1)
+    dotenv (2.8.1)
+    dotenv-rails (2.8.1)
+      dotenv (= 2.8.1)
+      railties (>= 3.2)
     drb (2.2.1)
     erubi (1.13.1)
     factory_bot (6.4.5)
@@ -139,6 +143,7 @@ GEM
     nio4r (2.7.4)
     nokogiri (1.15.7-x86_64-darwin)
       racc (~> 1.4)
+    openai (0.3.0)
     pg (1.5.9)
     pp (0.6.2)
       prettyprint
@@ -229,9 +234,11 @@ DEPENDENCIES
   bcrypt (~> 3.1.7)
   bootsnap
   debug
+  dotenv-rails
   factory_bot_rails
   faker
   jwt
+  openai
   pg (~> 1.1)
   puma (>= 5.0)
   rack-cors

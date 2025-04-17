@@ -27,11 +27,14 @@ gem "bootsnap", require: false
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
 gem "rack-cors"
+gem "openai"
 
 # JWT for token-based authentication
 gem 'jwt'
 
 group :development, :test do
+  # Load environment variables from .env in development and test
+  gem 'dotenv-rails'
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri mswin mswin64 mingw x64_mingw ]
   gem 'rspec-rails'

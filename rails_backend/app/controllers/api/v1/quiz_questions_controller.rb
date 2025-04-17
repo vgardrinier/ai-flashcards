@@ -33,84 +33,74 @@ class Api::V1::QuizQuestionsController < ApplicationController
     end
   end
   
+  # POST /api/v1/quiz_questions/generate
+  def generate
+    count = (params[:count] || 1).to_i
+    generated = []
+    count.times do
+      service = GenerateQuizQuestionService.new(
+        category_id: params[:category_id],
+        difficulty: params[:difficulty]
+      )
+      generated << service.call
+    end
+    render json: generated, include: :category, status: :created
+  rescue => e
+    render json: { error: e.message }, status: :internal_server_error
+  end
+
   # POST /api/v1/quiz_questions/:id/attempt
   def attempt
-    Rails.logger.info "Attempt action called with params: #{params.inspect}"
-    Rails.logger.info "Request headers: #{request.headers.inspect}"
-    Rails.logger.info "Request body: #{request.raw_post}"
-    
-    quiz_question = QuizQuestion.find(params[:id])
-    Rails.logger.info "Found quiz question: #{quiz_question.id}"
-    
-    # Try to get parameters from different sources
-    user_id = params[:user_id] || params.dig(:user_id) || begin
-      body = JSON.parse(request.raw_post)
-      body['user_id']
-    rescue JSON::ParserError => e
-      Rails.logger.error "Error parsing JSON: #{e.message}"
-      nil
-    end
-    
-    selected_option = params[:selected_option] || params.dig(:selected_option) || begin
-      body = JSON.parse(request.raw_post)
-      body['selected_option']
-    rescue JSON::ParserError => e
-      Rails.logger.error "Error parsing JSON: #{e.message}"
-      nil
-    end
-    
-    Rails.logger.info "Extracted parameters - user_id: #{user_id}, selected_option: #{selected_option}"
-    
-    # Validate required parameters
-    if user_id.nil? || selected_option.nil?
-      Rails.logger.error "Missing required parameters - user_id: #{user_id.nil? ? 'missing' : 'present'}, selected_option: #{selected_option.nil? ? 'missing' : 'present'}"
-      render json: { 
-        error: "Missing required parameters",
-        details: {
-          user_id: user_id.nil? ? "missing" : "present",
-          selected_option: selected_option.nil? ? "missing" : "present"
+    begin
+      user_id = params.require(:user_id)
+      selected_option = params.require(:selected_option)
+      difficulty = params[:difficulty]
+
+      quiz_question = QuizQuestion.find(params[:id])
+      user = User.find(user_id)
+
+      quiz_attempt = QuizAttempt.new(
+        user: user,
+        quiz_question: quiz_question,
+        selected_option: selected_option,
+        difficulty: difficulty,
+        correct: selected_option == quiz_question.correct_option
+      )
+
+      if quiz_attempt.save
+        render json: {
+          data: {
+            correct: quiz_attempt.correct,
+            score_change: quiz_attempt.score_change,
+            explanation: quiz_question.explanation
+          }
         }
-      }, status: :unprocessable_entity
-      return
+      else
+        render json: { errors: quiz_attempt.errors.full_messages }, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::RecordNotFound => e
+      render json: { error: e.message }, status: :not_found
+    rescue => e
+      Rails.logger.error "Error in quiz attempt: #{e.message}\n#{e.backtrace.join("\n")}"
+      render json: { error: e.message }, status: :internal_server_error
     end
-    
-    user = User.find_by(id: user_id)
-    if user.nil?
-      render json: { error: "User not found" }, status: :not_found
-      return
-    end
-    
-    attempt = QuizAttempt.new(
-      user: user,
-      quiz_question: quiz_question,
-      selected_option: selected_option
-    )
-    
-    if attempt.save
-      render json: {
-        data: {
-          correct: attempt.correct,
-          score_change: attempt.score_change,
-          explanation: quiz_question.explanation
-        }
-      }
-    else
-      render json: { 
-        data: {
-          error: attempt.errors.full_messages
-        }
-      }, status: :unprocessable_entity
-    end
-  rescue ActiveRecord::RecordNotFound => e
-    render json: { error: e.message }, status: :not_found
-  rescue => e
-    Rails.logger.error "Error in attempt action: #{e.message}"
-    render json: { error: e.message }, status: :internal_server_error
   end
   
   private
   
   def quiz_question_params
     params.require(:quiz_question).permit(:question, :option_a, :option_b, :option_c, :option_d, :correct_option, :difficulty, :category_id)
+  end
+
+  def calculate_score_change(difficulty)
+    base_score = 20
+    difficulty_multiplier = case difficulty.to_i
+      when 1 then 0.8  # Easy
+      when 2 then 1.0  # Medium
+      when 3 then 1.2  # Hard
+      else 1.0
+    end
+    
+    (base_score * difficulty_multiplier).round
   end
 end

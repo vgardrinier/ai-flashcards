@@ -46,10 +46,11 @@ export const quizAPI = {
     return api.get('/quiz_questions', { params });
   },
   getById: (id) => api.get(`/quiz_questions/${id}`),
-  submitAnswer: (questionId, userId, selectedOption) => 
+  submitAnswer: (questionId, userId, selectedOption, difficulty) => 
     api.post(`/quiz_questions/${questionId}/attempt`, { 
       user_id: userId, 
-      selected_option: selectedOption 
+      selected_option: selectedOption,
+      difficulty: difficulty
     }),
 };
 

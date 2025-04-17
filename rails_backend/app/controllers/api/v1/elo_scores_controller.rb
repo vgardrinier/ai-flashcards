@@ -22,24 +22,28 @@ class Api::V1::EloScoresController < ApplicationController
   # GET /api/v1/elo_scores/:user_id/history
   def history
     user = User.find(params[:user_id])
-    attempts = user.quiz_attempts.order(created_at: :asc).limit(100)
+    attempts = user.quiz_attempts.order(created_at: :asc)
     
-    # Calculate cumulative score over time
-    score_history = []
-    running_score = 1000 # Starting score
+    # If there are no attempts, return just the current score
+    if attempts.empty?
+      render json: [{
+        date: user.elo_score.created_at,
+        score: user.elo_score.score,
+        change: 0
+      }]
+      return
+    end
     
-    attempts.each do |attempt|
-      running_score += attempt.score_change
-      score_history << {
+    # Return the history of scores from quiz attempts
+    history = attempts.map do |attempt|
+      {
         date: attempt.created_at,
-        score: running_score,
-        change: attempt.score_change,
-        question_id: attempt.quiz_question_id,
-        correct: attempt.correct
+        score: attempt.elo_score_after,
+        change: attempt.score_change
       }
     end
     
-    render json: score_history
+    render json: history
   end
   
   # GET /api/v1/elo_scores/levels
