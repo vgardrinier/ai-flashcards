@@ -32,6 +32,12 @@ Rails.application.routes.draw do
         end
       end
       
+      # Testing routes
+      namespace :tests do
+        post 'openai/generate_question', to: 'openai#generate_question'
+        get 'openai/test_connection', to: 'openai#test_connection'
+      end
+      
       # Authentication routes
       post 'login', to: 'auth#login'
       post 'logout', to: 'auth#logout'

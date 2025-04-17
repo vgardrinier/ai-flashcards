@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test OpenAI Integration</title>
+  <script>
+    async function testConnection() {
+      const response = document.getElementById('response');
+      response.textContent = 'Testing connection to OpenAI API...';
+      
+      try {
+        const result = await fetch('/api/v1/tests/openai/test_connection');
+        const data = await result.json();
+        response.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        response.textContent = 'Error: ' + error.message;
+      }
+    }
+    
+    async function generateQuestion() {
+      const difficulty = document.getElementById('difficulty').value;
+      const categoryId = document.getElementById('category_id').value;
+      
+      const response = document.getElementById('response');
+      response.textContent = 'Generating quiz question...';
+      
+      try {
+        const result = await fetch('/api/v1/tests/openai/generate_question', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            difficulty: difficulty ? parseInt(difficulty) : undefined,
+            category_id: categoryId ? parseInt(categoryId) : undefined
+          })
+        });
+        
+        const data = await result.json();
+        response.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        response.textContent = 'Error: ' + error.message;
+      }
+    }
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    button { margin: 10px 10px 0 0; padding: 10px; }
+    pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow: auto; max-height: 400px; }
+    .buttons { margin-top: 20px; }
+    .checkbox-label { display: flex; align-items: center; }
+    .checkbox-label input { margin-right: 10px; }
+    .section { border: 1px solid #ddd; padding: 15px; margin-top: 20px; border-radius: 5px; }
+    h2 { margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h1>Test OpenAI Integration</h1>
+  
+  <div class="section">
+    <h3>Step 1: Test Connection</h3>
+    <p>First, verify that your API key is valid and can connect to OpenAI:</p>
+    <button onclick="testConnection()">Test OpenAI Connection</button>
+  </div>
+  
+  <div class="section">
+    <h3>Step 2: Generate Quiz Question</h3>
+    <p>If the connection test is successful, try generating a quiz question:</p>
+    
+    <label for="difficulty">
+      Difficulty (1-5):
+      <input type="number" id="difficulty" min="1" max="5" value="1">
+    </label>
+    
+    <label for="category_id">
+      Category ID (optional):
+      <input type="number" id="category_id">
+    </label>
+    
+    <button onclick="generateQuestion()">Generate Quiz Question</button>
+  </div>
+  
+  <h2>Response:</h2>
+  <pre id="response">Click one of the buttons above to test the OpenAI API...</pre>
+</body>
+</html>

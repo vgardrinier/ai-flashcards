@@ -99,6 +99,7 @@ GEM
       railties (>= 3.2)
     drb (2.2.1)
     erubi (1.13.1)
+    event_stream_parser (1.0.0)
     factory_bot (6.4.5)
       activesupport (>= 5.0.0)
     factory_bot_rails (6.4.3)
@@ -106,6 +107,13 @@ GEM
       railties (>= 5.0.0)
     faker (3.4.2)
       i18n (>= 1.8.11, < 2)
+    faraday (2.8.1)
+      base64
+      faraday-net_http (>= 2.0, < 3.1)
+      ruby2_keywords (>= 0.0.4)
+    faraday-multipart (1.1.0)
+      multipart-post (~> 2.0)
+    faraday-net_http (3.0.2)
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.7)
@@ -130,6 +138,7 @@ GEM
     mini_mime (1.1.5)
     minitest (5.25.5)
     msgpack (1.8.0)
+    multipart-post (2.4.1)
     mutex_m (0.3.0)
     net-imap (0.4.19)
       date
@@ -143,7 +152,6 @@ GEM
     nio4r (2.7.4)
     nokogiri (1.15.7-x86_64-darwin)
       racc (~> 1.4)
-    openai (0.3.0)
     pg (1.5.9)
     pp (0.6.2)
       prettyprint
@@ -215,6 +223,11 @@ GEM
       rspec-mocks (~> 3.13)
       rspec-support (~> 3.13)
     rspec-support (3.13.2)
+    ruby-openai (8.1.0)
+      event_stream_parser (>= 0.3.0, < 2.0.0)
+      faraday (>= 1)
+      faraday-multipart (>= 1)
+    ruby2_keywords (0.0.5)
     securerandom (0.3.2)
     stringio (3.1.6)
     thor (1.3.2)
@@ -238,12 +251,12 @@ DEPENDENCIES
   factory_bot_rails
   faker
   jwt
-  openai
   pg (~> 1.1)
   puma (>= 5.0)
   rack-cors
   rails (~> 7.1.5, >= 7.1.5.1)
   rspec-rails
+  ruby-openai (~> 8.1)
   tzinfo-data
 
 RUBY VERSION
