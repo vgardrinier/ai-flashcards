@@ -1,0 +1,8 @@
+{
+  "short_name": "AI Flashcards",
+  "name": "AI Flashcards - Learn everything about AI, LLMs, and agents",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+}
