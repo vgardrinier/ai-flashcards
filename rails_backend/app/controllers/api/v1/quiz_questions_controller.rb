@@ -90,7 +90,8 @@ class Api::V1::QuizQuestionsController < ApplicationController
       render json: {
         data: {
           correct: attempt.correct,
-          score_change: attempt.score_change
+          score_change: attempt.score_change,
+          explanation: quiz_question.explanation
         }
       }
     else

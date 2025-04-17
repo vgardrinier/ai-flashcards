@@ -15,12 +15,29 @@ class QuizAttempt < ApplicationRecord
   def check_answer_and_calculate_score
     self.correct = (selected_option == quiz_question.correct_option)
     
-    # Calculate score change based on difficulty and correctness
-    if self.correct
-      self.score_change = 5 * quiz_question.difficulty
-    else
-      self.score_change = -3 * quiz_question.difficulty
-    end
+    # Calculate base score (0-100)
+    base_score = correct ? 100 : -50  # Negative base score for incorrect answers
+    
+    # Adjust score based on difficulty
+    # Higher difficulty questions are worth more points (or lose more points)
+    difficulty_multiplier = 1.0 + (quiz_question.difficulty - 1) * 0.2
+    
+    # Calculate final score
+    final_score = (base_score * difficulty_multiplier).round
+    
+    # Calculate score change based on user's current ELO
+    # Higher ELO users need to perform better to maintain their score
+    elo_factor = case user.elo_score.score
+                 when 0..1000 then 1.0
+                 when 1001..2000 then 0.8
+                 when 2001..3000 then 0.6
+                 else 0.4
+                 end
+    
+    # Calculate score change (positive for correct, negative for incorrect)
+    # Cap the maximum score change to prevent extreme fluctuations
+    max_score_change = 20
+    self.score_change = (final_score * elo_factor).round.clamp(-max_score_change, max_score_change)
   end
   
   def update_elo_score

@@ -203,3 +203,40 @@ QuizQuestion.create!(
   correct_option: "b",
   difficulty: 3
 )
+
+# Create sample quiz questions
+QuizQuestion.create!([
+  {
+    question: "What is the capital of France?",
+    option_a: "London",
+    option_b: "Berlin",
+    option_c: "Paris",
+    option_d: "Madrid",
+    correct_option: "c",
+    explanation: "Paris is the capital and most populous city of France. It is known as the 'City of Light' and is famous for its landmarks like the Eiffel Tower and the Louvre Museum.",
+    difficulty: 1,
+    category_id: 1
+  },
+  {
+    question: "Which planet is known as the Red Planet?",
+    option_a: "Venus",
+    option_b: "Mars",
+    option_c: "Jupiter",
+    option_d: "Saturn",
+    correct_option: "b",
+    explanation: "Mars is often called the 'Red Planet' due to its reddish appearance, which is caused by iron oxide (rust) on its surface. It's the fourth planet from the Sun and has been a target for space exploration.",
+    difficulty: 2,
+    category_id: 2
+  },
+  {
+    question: "What is the chemical symbol for gold?",
+    option_a: "Ag",
+    option_b: "Fe",
+    option_c: "Au",
+    option_d: "Cu",
+    correct_option: "c",
+    explanation: "The chemical symbol for gold is 'Au', derived from the Latin word 'aurum'. Gold is a precious metal that has been used for coinage, jewelry, and other arts throughout recorded history.",
+    difficulty: 3,
+    category_id: 3
+  }
+])

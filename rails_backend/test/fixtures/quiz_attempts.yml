@@ -3,13 +3,13 @@
 one:
   user: one
   quiz_question: one
-  selected_option: MyString
-  correct: false
-  score_change: 1
+  selected_option: a
+  correct: true
+  score_change: 20
 
 two:
   user: two
   quiz_question: two
-  selected_option: MyString
+  selected_option: b
   correct: false
-  score_change: 1
+  score_change: -20
