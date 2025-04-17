@@ -44,6 +44,7 @@ import { RecentActivity, ELOLevel, Category } from './types';
 import { QuizResults } from './types/api';
 import { quizQuestions } from './data/quizQuestions';
 import theme from './theme';
+import Resources from './components/Resources';
 
 // Verify the imported eloAPI
 console.log('App component - Imported eloAPI:', {
@@ -589,6 +590,8 @@ const App: React.FC = () => {
         );
       case 'api-test':
         return <ApiTest />;
+      case 'resources':
+        return <Resources />;
       default:
         return (
           <Box sx={{ p: 3 }}>
@@ -623,6 +626,7 @@ const App: React.FC = () => {
                 <Button color="inherit" onClick={() => handleNavigation('progress')}>Progress</Button>
                 <Button color="inherit" onClick={() => handleNavigation('flashcards')}>Flashcards</Button>
                 <Button color="inherit" onClick={() => handleNavigation('settings')}>Settings</Button>
+                <Button color="inherit" onClick={() => handleNavigation('resources')}>Resources</Button>
               </Box>
             </Box>
             <Button 
