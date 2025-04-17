@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline, Box, Container, Typography, Button, Paper, CircularProgress, Alert, Snackbar } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box, Container, Typography, Button, Paper, CircularProgress, Alert, Snackbar, Grid } from '@mui/material';
 import { 
   AppBar, 
   Toolbar, 
@@ -17,8 +17,7 @@ import {
   MenuItem,
   Tooltip,
   Switch,
-  FormControlLabel,
-  Grid
+  FormControlLabel
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -44,6 +43,8 @@ import ApiTest from './components/ApiTest';
 import { RecentActivity, ELOLevel, Category } from './types';
 import { QuizResults } from './types/api';
 import { quizQuestions } from './data/quizQuestions';
+import theme from './theme';
+import Resources from './components/Resources';
 
 // Verify the imported eloAPI
 console.log('App component - Imported eloAPI:', {
@@ -124,18 +125,56 @@ const sampleELOLevels: ELOLevel[] = [
     name: "Novice Explorer",
     minScore: 0,
     maxScore: 999,
-    description: "Beginning the AI journey with foundational knowledge",
-    badgeIcon: "novice_badge.png"
+    description: "Beginning your journey into AI concepts",
+    badgeIcon: "🔍"
   },
   {
     name: "AI Apprentice",
     minScore: 1000,
-    maxScore: 1199,
-    description: "Building core understanding of AI concepts",
-    badgeIcon: "apprentice_badge.png"
+    maxScore: 1249,
+    description: "Learning the fundamentals of AI and machine learning",
+    badgeIcon: "🌱"
   },
-  // Additional levels would be defined here
+  {
+    name: "Algorithm Adept",
+    minScore: 1250,
+    maxScore: 1499,
+    description: "Mastering basic algorithms and neural networks",
+    badgeIcon: "🧮"
+  },
+  {
+    name: "Data Disciple",
+    minScore: 1500,
+    maxScore: 1749,
+    description: "Developing expertise in data processing and analysis",
+    badgeIcon: "📊"
+  },
+  {
+    name: "ML Engineer",
+    minScore: 1750,
+    maxScore: 1999,
+    description: "Building and optimizing machine learning models",
+    badgeIcon: "⚙️"
+  },
+  {
+    name: "LLM Specialist",
+    minScore: 2000,
+    maxScore: 2149,
+    description: "Understanding the intricacies of large language models",
+    badgeIcon: ""
+  }
 ];
+
+interface ApiEloLevel {
+  id: number;
+  name: string;
+  min_score: number;
+  max_score: number;
+  description: string;
+  icon: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface UserData {
   username: string;
@@ -148,14 +187,14 @@ interface UserData {
 }
 
 const App: React.FC = () => {
-  const [darkMode, setDarkMode] = React.useState(false);
-  const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [currentPage, setCurrentPage] = React.useState('dashboard');
-  const [showLogin, setShowLogin] = React.useState(false);
-  const [userData, setUserData] = React.useState<UserData>({
+  const [darkMode, setDarkMode] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [levels, setLevels] = useState<ELOLevel[]>([]);
+  const [userData, setUserData] = useState<UserData>({
     username: 'AI_Learner',
-    userId: 1,
+    userId: 3,
     eloScore: null,
     currentLevel: null,
     nextLevel: null,
@@ -163,17 +202,142 @@ const App: React.FC = () => {
     studyStreak: 7,
   });
 
-  const [isLoading, setIsLoading] = React.useState(true);
+  // Fetch levels
+  useEffect(() => {
+    const fetchLevels = async () => {
+      console.log('Starting to fetch levels...');
+      try {
+        const levelsResponse = await eloAPI.getLevels();
+        console.log('Raw levels response:', levelsResponse);
+        
+        if (!levelsResponse.data) {
+          console.error('No data in levels response');
+          return;
+        }
+
+        // Handle the response data directly
+        const levelsData = levelsResponse.data;
+        console.log('Levels data to transform:', levelsData);
+        
+        const transformedLevels = levelsData.map((level: { 
+          name: string; 
+          min_score: number; 
+          max_score: number; 
+          description: string; 
+          icon?: string; 
+        }) => ({
+          name: level.name,
+          minScore: level.min_score,
+          maxScore: level.max_score,
+          description: level.description,
+          badgeIcon: level.icon || '',
+        }));
+
+        console.log('Setting levels state with:', transformedLevels);
+        setLevels(transformedLevels);
+
+      } catch (error) {
+        console.error('Error fetching levels:', error);
+        // Fallback to sample levels if API fails
+        console.log('Using sample levels as fallback');
+        setLevels(sampleELOLevels);
+      }
+    };
+
+    fetchLevels();
+  }, []);
+
+  // Fetch score and calculate levels when levels are available
+  useEffect(() => {
+    const fetchScore = async () => {
+      console.log('Starting to fetch score with levels:', levels);
+      try {
+        const scoreResponse = await eloAPI.getScore(3);
+        console.log('Raw score response:', scoreResponse);
+
+        if (!scoreResponse.data) {
+          console.error('No data in score response');
+          return;
+        }
+
+        const currentScore = scoreResponse.data.score;
+        console.log('Current score:', currentScore);
+        console.log('Available levels for calculation:', levels);
+
+        const currentLevel = getLevelForScore(currentScore);
+        console.log('Calculated current level:', currentLevel);
+
+        const nextLevel = getNextLevelForScore(currentScore);
+        console.log('Calculated next level:', nextLevel);
+
+        const progressToNextLevel = calculateProgressToNextLevel(currentScore);
+        console.log('Calculated progress:', progressToNextLevel);
+
+        console.log('Updating user data with:', {
+          currentScore,
+          currentLevel,
+          nextLevel,
+          progressToNextLevel
+        });
+
+        setUserData(prevData => ({
+          ...prevData,
+          eloScore: currentScore,
+          currentLevel,
+          nextLevel,
+          progressToNextLevel,
+        }));
+
+      } catch (error) {
+        console.error('Error fetching score:', error);
+        // Fallback to a default score if API fails
+        const defaultScore = 220;
+        const currentLevel = getLevelForScore(defaultScore);
+        const nextLevel = getNextLevelForScore(defaultScore);
+        const progressToNextLevel = calculateProgressToNextLevel(defaultScore);
+
+        console.log('Using fallback data:', {
+          defaultScore,
+          currentLevel,
+          nextLevel,
+          progressToNextLevel
+        });
+
+        setUserData(prevData => ({
+          ...prevData,
+          eloScore: defaultScore,
+          currentLevel,
+          nextLevel,
+          progressToNextLevel,
+        }));
+      }
+    };
+
+    if (levels.length > 0) {
+      console.log('Levels available, fetching score...');
+      fetchScore();
+    } else {
+      console.log('No levels available yet, waiting...');
+    }
+  }, [levels]);
 
   // Helper function to get the appropriate level for a given score
-  const getLevelForScore = (score: number): ELOLevel => {
-    return sampleELOLevels.find(level => score >= level.minScore && score <= level.maxScore) || sampleELOLevels[0];
+  const getLevelForScore = (score: number): ELOLevel | null => {
+    console.log('getLevelForScore called with:', score);
+    console.log('Available levels:', levels);
+    const foundLevel = levels.find(level => score >= level.minScore && score <= level.maxScore);
+    console.log('Found level:', foundLevel);
+    return foundLevel || null;
   };
 
   // Helper function to get the next level for a given score
-  const getNextLevelForScore = (score: number): ELOLevel => {
-    const currentLevelIndex = sampleELOLevels.findIndex(level => score >= level.minScore && score <= level.maxScore);
-    return currentLevelIndex < sampleELOLevels.length - 1 ? sampleELOLevels[currentLevelIndex + 1] : sampleELOLevels[currentLevelIndex];
+  const getNextLevelForScore = (score: number): ELOLevel | null => {
+    console.log('getNextLevelForScore called with:', score);
+    const currentLevelIndex = levels.findIndex(level => score >= level.minScore && score <= level.maxScore);
+    console.log('Current level index:', currentLevelIndex);
+    const nextLevel = currentLevelIndex < levels.length - 1 ? levels[currentLevelIndex + 1] : null;
+    console.log('Next level:', nextLevel);
+    return nextLevel;
   };
 
   // Helper function to calculate progress to next level
@@ -181,6 +345,7 @@ const App: React.FC = () => {
     const currentLevel = getLevelForScore(score);
     const nextLevel = getNextLevelForScore(score);
     
+    if (!currentLevel || !nextLevel) return 0;
     if (currentLevel === nextLevel) return 100;
     
     const range = nextLevel.minScore - currentLevel.minScore;
@@ -188,67 +353,20 @@ const App: React.FC = () => {
     return Math.round((progress / range) * 100);
   };
 
-  // Helper function to calculate points to next level - moved to component level
+  // Helper function to calculate points to next level
   const calculatePointsToNext = () => {
     if (!userData.nextLevel || !userData.eloScore) return null;
     return userData.nextLevel.minScore - userData.eloScore;
   };
 
-  // Fetch initial ELO score when component mounts
-  React.useEffect(() => {
-    const fetchEloScore = async () => {
-      try {
-        console.log('Fetching initial ELO score...');
-        const response = await eloAPI.getScore(1);
-        console.log('Initial ELO score response:', response);
-        
-        if (response.data && response.data.score !== undefined) {
-          const eloScore = response.data.score;
-          console.log('Setting initial ELO score to:', eloScore);
-          
-          setUserData(prev => {
-            const updated: UserData = {
-              ...prev,
-              eloScore,
-              currentLevel: getLevelForScore(eloScore),
-              nextLevel: getNextLevelForScore(eloScore),
-              progressToNextLevel: calculateProgressToNextLevel(eloScore)
-            };
-            console.log('Updated initial user data:', updated);
-            return updated;
-          });
-        } else {
-          console.error('Invalid response structure:', response);
-        }
-      } catch (error) {
-        console.error('Error fetching initial ELO score:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEloScore();
-  }, []);
-
-  // Create theme based on dark mode preference
-  const theme = createTheme({
-    palette: {
-      mode: darkMode ? 'dark' : 'light',
-      primary: {
-        main: '#3f51b5',
-      },
-      secondary: {
-        main: '#f50057',
-      },
+  // Add debug logging for render conditions
+  console.log('Render state:', {
+    userData: {
+      eloScore: userData.eloScore,
+      currentLevel: userData.currentLevel,
+      nextLevel: userData.nextLevel
     },
-    typography: {
-      fontFamily: [
-        'Roboto',
-        '"Helvetica Neue"',
-        'Arial',
-        'sans-serif',
-      ].join(','),
-    },
+    levels: levels.length
   });
 
   const toggleDarkMode = () => {
@@ -278,14 +396,14 @@ const App: React.FC = () => {
       console.log('Current user data before update:', userData);
       
       // Get the current ELO score from the backend
-      const currentScoreResponse = await eloAPI.getScore(1);
+      const currentScoreResponse = await eloAPI.getScore(3);
       console.log('Current score response:', currentScoreResponse);
       const currentScore = currentScoreResponse.data.score;
       console.log('Current ELO score from backend:', currentScore);
       
       // The backend automatically updates the ELO score for each question
       // We just need to get the latest score
-      const response = await eloAPI.getScore(1);
+      const response = await eloAPI.getScore(3);
       console.log('Updated ELO score response:', response);
       
       if (response.data && response.data.score !== undefined) {
@@ -381,45 +499,20 @@ const App: React.FC = () => {
 
   // Render the appropriate component based on current page
   const renderContent = () => {
-    if (isLoading || !userData.eloScore || !userData.currentLevel || !userData.nextLevel) {
-      return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <CircularProgress />
-        </Box>
-      );
-    }
-
     switch (currentPage) {
       case 'dashboard':
         return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>Dashboard</Typography>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={4}>
-                <EloScoreDisplay
-                  score={userData.eloScore}
-                  level={userData.currentLevel}
-                  progress={userData.progressToNextLevel}
-                  pointsToNext={calculatePointsToNext()}
-                />
-              </Grid>
-              <Grid item xs={12} md={8}>
-                <Dashboard
-                  username={userData.username}
-                  eloScore={userData.eloScore}
-                  currentLevel={userData.currentLevel}
-                  nextLevel={userData.nextLevel}
-                  progressToNextLevel={userData.progressToNextLevel}
-                  categories={sampleCategories}
-                  recentActivity={sampleRecentActivity}
-                  studyStreak={userData.studyStreak}
-                  onStartQuiz={(categoryId) => handleNavigation('quiz')}
-                  onReviewFlashcards={(categoryId) => handleNavigation('flashcards')}
-                  onViewProgress={() => handleNavigation('progress')}
-                />
-              </Grid>
-            </Grid>
-          </Box>
+          <Dashboard
+            username={userData.username}
+            eloScore={userData.eloScore}
+            currentLevel={userData.currentLevel}
+            nextLevel={userData.nextLevel}
+            progressToNextLevel={userData.progressToNextLevel}
+            studyStreak={userData.studyStreak}
+            onStartQuiz={() => handleNavigation('quiz')}
+            levels={levels}
+            userId={userData.userId}
+          />
         );
       case 'flashcards':
         return (
@@ -497,6 +590,8 @@ const App: React.FC = () => {
         );
       case 'api-test':
         return <ApiTest />;
+      case 'resources':
+        return <Resources />;
       default:
         return (
           <Box sx={{ p: 3 }}>
@@ -513,31 +608,43 @@ const App: React.FC = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <AppBar position="static">
-          <Toolbar>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              AI Flashcards
-            </Typography>
-            <Button color="inherit" onClick={() => setShowLogin(true)}>
+        <AppBar 
+          position="static" 
+          elevation={0}
+          sx={{ 
+            background: 'linear-gradient(90deg, #6366F1 0%, #8B5CF6 100%)',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <Toolbar sx={{ justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Typography variant="h6" fontWeight="bold">
+                AI Flashcards
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 3 }}>
+                <Button color="inherit" onClick={() => handleNavigation('dashboard')}>Dashboard</Button>
+                <Button color="inherit" onClick={() => handleNavigation('progress')}>Progress</Button>
+                <Button color="inherit" onClick={() => handleNavigation('flashcards')}>Flashcards</Button>
+                <Button color="inherit" onClick={() => handleNavigation('settings')}>Settings</Button>
+                <Button color="inherit" onClick={() => handleNavigation('resources')}>Resources</Button>
+              </Box>
+            </Box>
+            <Button 
+              variant="contained" 
+              sx={{ 
+                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.2)',
+                }
+              }}
+            >
               Login
             </Button>
           </Toolbar>
         </AppBar>
 
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4, flex: 1 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={8}>
-              {renderContent()}
-            </Grid>
-            <Grid item xs={12} md={4}>
-              <EloScoreDisplay
-                score={userData.eloScore}
-                level={userData.currentLevel}
-                progress={userData.progressToNextLevel}
-                pointsToNext={calculatePointsToNext()}
-              />
-            </Grid>
-          </Grid>
+          {renderContent()}
         </Container>
 
         <Drawer

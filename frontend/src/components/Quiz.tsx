@@ -107,6 +107,7 @@ const Quiz: React.FC<QuizProps> = ({
     totalQuestions: 0,
     correctAnswers: 0,
     score: 0,
+    totalEloChange: 0,
     answers: [],
   });
   const [startTime, setStartTime] = useState<number>(Date.now());
@@ -183,14 +184,17 @@ const Quiz: React.FC<QuizProps> = ({
     
     setSelectedOption(option);
     try {
+      // Ensure difficulty is within valid range (1-5)
+      const questionDifficulty = Math.min(Math.max(questions[currentQuestionIndex].difficulty, 1), 5);
+      
       const response = await quizAPI.submitAnswer(
         questions[currentQuestionIndex].id,
         userId,
         option,
-        questions[currentQuestionIndex].difficulty
+        questionDifficulty
       );
       
-      if (response.status >= 200 && response.status < 300) {
+      if (response.status >= 200 && response.status < 300 && response.data.data) {
         const { correct: isCorrect, score_change: scoreChange, explanation: apiExplanation } = response.data.data;
         const currentExplanation = apiExplanation || questions[currentQuestionIndex].explanation || 'No explanation available.';
         
@@ -198,23 +202,36 @@ const Quiz: React.FC<QuizProps> = ({
         setScoreChange(scoreChange);
         setExplanation(currentExplanation);
         
-        // Update results with the new answer
-        setResults(prev => ({
-          ...prev,
-          correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
-          score: Math.round(((prev.correctAnswers + (isCorrect ? 1 : 0)) / questions.length) * 100),
-          answers: [
-            ...prev.answers,
-            {
-              questionId: questions[currentQuestionIndex].id,
-              selectedOption: option,
-              correct: isCorrect,
-              explanation: currentExplanation
-            }
-          ]
-        }));
+        // Update results with the new answer and accumulate ELO change
+        setResults(prev => {
+          const newTotalEloChange = prev.totalEloChange + scoreChange;
+          console.log('Updating totalEloChange:', {
+            previous: prev.totalEloChange,
+            currentChange: scoreChange,
+            newTotal: newTotalEloChange
+          });
+          
+          return {
+            ...prev,
+            correctAnswers: prev.correctAnswers + (isCorrect ? 1 : 0),
+            score: Math.round(((prev.correctAnswers + (isCorrect ? 1 : 0)) / questions.length) * 100),
+            totalEloChange: newTotalEloChange,
+            answers: [
+              ...prev.answers,
+              {
+                questionId: questions[currentQuestionIndex].id,
+                selectedOption: option,
+                correct: isCorrect,
+                explanation: currentExplanation,
+                scoreChange: scoreChange
+              }
+            ]
+          };
+        });
 
         setShowExplanation(true);
+      } else {
+        throw new Error('Invalid response format from server');
       }
     } catch (error) {
       console.error('Error submitting answer:', error);
@@ -302,6 +319,9 @@ const Quiz: React.FC<QuizProps> = ({
           <Typography variant="body1" color="text.secondary" align="center" sx={{ mt: 2 }}>
             Total ELO Score Changes:
           </Typography>
+          <Typography variant="h5" color="primary" align="center" fontWeight="bold">
+            {results.totalEloChange > 0 ? '+' : ''}{results.totalEloChange} points
+          </Typography>
           <Typography variant="body2" color="text.secondary" align="center">
             Your ELO score has been updated after each question.
             Check your profile to see your current ELO score and level.
@@ -331,14 +351,19 @@ const Quiz: React.FC<QuizProps> = ({
                   <Typography variant="subtitle2" color="text.secondary">
                     Question {index + 1}
                   </Typography>
-                  <Chip 
-                    size="small"
-                    label={answer.correct ? "Correct" : "Incorrect"} 
-                    color={answer.correct ? "success" : "error"} 
-                  />
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Chip 
+                      size="small"
+                      label={answer.correct ? "Correct" : "Incorrect"} 
+                      color={answer.correct ? "success" : "error"} 
+                    />
+                    <Typography variant="caption" color="text.secondary">
+                      {answer.scoreChange > 0 ? '+' : ''}{answer.scoreChange} points
+                    </Typography>
+                  </Box>
                 </Box>
                 <Typography variant="body1" gutterBottom>
-                  {currentQuestion.question}
+                  {questions[index].question}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Your answer: {answer.selectedOption}

@@ -12,42 +12,26 @@ interface EloScoreDisplayProps {
   pointsToNext: number | null;
 }
 
-interface LevelBadgeProps {
-  levelName: string;
-}
-
-// Styled components
-const LevelBadge = styled(Paper)<LevelBadgeProps>(({ theme, levelName }) => ({
-  padding: theme.spacing(2),
+const LevelBadge = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
   textAlign: 'center',
-  color: theme.palette.text.primary,
-  background: getLevelColor(levelName),
-  borderRadius: '8px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-  transition: 'transform 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
-  },
-  position: 'relative',
-  overflow: 'hidden'
-}));
-
-const ProgressContainer = styled(Box)(({ theme }) => ({
-  marginTop: theme.spacing(2),
-  marginBottom: theme.spacing(2),
+  background: 'linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%)',
+  borderRadius: theme.shape.borderRadius * 2,
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+  border: '1px solid rgba(0, 0, 0, 0.05)',
 }));
 
 const ScoreDisplay = styled(Typography)(({ theme }) => ({
-  fontWeight: 'bold',
+  fontWeight: 700,
   fontSize: '2.5rem',
-  color: theme.palette.primary.main,
-  textAlign: 'center',
+  background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
   marginBottom: theme.spacing(1),
 }));
 
 const LevelName = styled(Typography)(({ theme }) => ({
-  fontWeight: 'bold',
+  fontWeight: 600,
   fontSize: '1.5rem',
   marginBottom: theme.spacing(1),
   display: 'flex',
@@ -55,7 +39,6 @@ const LevelName = styled(Typography)(({ theme }) => ({
   justifyContent: 'center',
   gap: theme.spacing(1),
   '& svg': {
-    marginRight: theme.spacing(1),
     color: '#FFD700',
   },
 }));
@@ -67,28 +50,9 @@ const NextLevelInfo = styled(Typography)(({ theme }) => ({
   marginTop: theme.spacing(1),
 }));
 
-// Helper function to get color based on level
-function getLevelColor(levelName: string): string {
-  const levelColors: Record<string, string> = {
-    'Novice Explorer': 'linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)',
-    'AI Apprentice': 'linear-gradient(135deg, #B2EBF2 0%, #80DEEA 100%)',
-    'ML Practitioner': 'linear-gradient(135deg, #80DEEA 0%, #4DD0E1 100%)',
-    'Deep Learning Enthusiast': 'linear-gradient(135deg, #4DD0E1 0%, #26C6DA 100%)',
-    'NLP Specialist': 'linear-gradient(135deg, #26C6DA 0%, #00BCD4 100%)',
-    'AI Systems Architect': 'linear-gradient(135deg, #00BCD4 0%, #00ACC1 100%)',
-    'Agent Engineer': 'linear-gradient(135deg, #00ACC1 0%, #0097A7 100%)',
-    'AI Research Lead': 'linear-gradient(135deg, #0097A7 0%, #00838F 100%)',
-    'AI Product Director': 'linear-gradient(135deg, #00838F 0%, #006064 100%)',
-    'Tier-1 AI CTO': 'linear-gradient(135deg, #006064 0%, #004D40 100%)'
-  };
-  
-  return levelColors[levelName] || 'linear-gradient(135deg, #E0F7FA 0%, #B2EBF2 100%)';
-}
-
 const EloScoreDisplay: React.FC<EloScoreDisplayProps> = ({ score, level, progress, pointsToNext }) => {
   const [animatedScore, setAnimatedScore] = useState(0);
   
-  // Animate score counting up - moved before conditional return
   useEffect(() => {
     if (!score) return;
     
@@ -120,25 +84,36 @@ const EloScoreDisplay: React.FC<EloScoreDisplayProps> = ({ score, level, progres
   }
   
   return (
-    <Box>
-      <LevelBadge levelName={level.name}>
-        <Box>
-          <Typography variant="h6" component="div">
-            {level.name}
-          </Typography>
-          <ScoreDisplay>{animatedScore}</ScoreDisplay>
-          <Typography variant="body2" color="text.secondary">
-            {level.description}
-          </Typography>
-        </Box>
-      </LevelBadge>
-      <ProgressContainer>
-        <LinearProgress variant="determinate" value={progress} />
-        <Typography variant="body2" color="text.secondary" align="center">
-          {pointsToNext !== null ? `${pointsToNext} points to next level` : 'Calculating...'}
+    <LevelBadge>
+      <Box>
+        <LevelName>
+          <EmojiEventsIcon />
+          {level.name}
+        </LevelName>
+        <ScoreDisplay>{animatedScore}</ScoreDisplay>
+        <Typography variant="body2" color="text.secondary">
+          {level.description}
         </Typography>
-      </ProgressContainer>
-    </Box>
+      </Box>
+      <Box sx={{ mt: 3 }}>
+        <LinearProgress 
+          variant="determinate" 
+          value={progress} 
+          sx={{ 
+            height: 8, 
+            borderRadius: 4,
+            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+            '& .MuiLinearProgress-bar': {
+              borderRadius: 4,
+              background: 'linear-gradient(90deg, #6366F1 0%, #8B5CF6 100%)',
+            }
+          }}
+        />
+        <NextLevelInfo>
+          {pointsToNext !== null ? `${pointsToNext} points to next level` : 'Calculating...'}
+        </NextLevelInfo>
+      </Box>
+    </LevelBadge>
   );
 };
 

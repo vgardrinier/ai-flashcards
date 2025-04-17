@@ -13,6 +13,28 @@ Rails.application.configure do
 
   # Show full error reports.
   config.consider_all_requests_local = true
+  
+  # Add request logging middleware in development
+  config.middleware.use(Class.new do
+    def initialize(app)
+      @app = app
+    end
+
+    def call(env)
+      request = ActionDispatch::Request.new(env)
+      start = Time.now
+      status, headers, response = @app.call(env)
+      duration = Time.now - start
+      
+      Rails.logger.debug "\n\n[REQUEST LOG] #{request.request_method} #{request.url} - #{status} (#{duration.round(2)}s)"
+      Rails.logger.debug "  Parameters: #{request.params.inspect}" if request.params.any?
+      Rails.logger.debug "  Format: #{request.format}" if request.format.present?
+      Rails.logger.debug "  Body: #{request.body.read}" if request.body.present? && request.body.respond_to?(:read)
+      Rails.logger.debug "  Headers: #{request.headers.select { |k, v| k.start_with?('HTTP_') }.inspect}"
+      
+      [status, headers, response]
+    end
+  end)
 
   # Enable server timing
   config.server_timing = true

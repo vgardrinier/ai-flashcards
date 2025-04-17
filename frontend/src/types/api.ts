@@ -63,6 +63,7 @@ export interface EloLevel {
   min_score: number;
   max_score: number;
   description: string;
+  icon?: string;
 }
 
 // Category types
@@ -110,13 +111,15 @@ export interface ApiError {
 
 export interface QuizResults {
   categoryId: number;
-  score: number;
   totalQuestions: number;
   correctAnswers: number;
+  score: number;
+  totalEloChange: number;
   answers: Array<{
     questionId: number;
-    selectedOption: 'a' | 'b' | 'c' | 'd';
+    selectedOption: string;
     correct: boolean;
-    explanation?: string;
+    explanation: string;
+    scoreChange: number;
   }>;
 } 

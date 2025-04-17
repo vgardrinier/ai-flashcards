@@ -8,6 +8,9 @@ Rails.application.routes.draw do
       resources :flashcards, only: [:index, :show, :create, :update]
       
       resources :quiz_questions, only: [:index, :show, :create] do
+        collection do
+          post 'generate'
+        end
         member do
           post 'attempt'
         end
@@ -27,6 +30,12 @@ Rails.application.routes.draw do
           get ':user_id/history', to: 'elo_scores#history'
           get 'levels', to: 'elo_scores#levels'
         end
+      end
+      
+      # Testing routes
+      namespace :tests do
+        post 'openai/generate_question', to: 'openai#generate_question'
+        get 'openai/test_connection', to: 'openai#test_connection'
       end
       
       # Authentication routes
