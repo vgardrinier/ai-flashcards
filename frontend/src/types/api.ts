@@ -39,6 +39,7 @@ export interface QuizAttemptRequest {
   user_id: number;
   selected_option: 'a' | 'b' | 'c' | 'd';
   difficulty: number;
+  quiz_session_id?: string;
 }
 
 export interface QuizAttemptResponse {
@@ -46,6 +47,8 @@ export interface QuizAttemptResponse {
   score_change: number;
   message?: string;
   explanation?: string;
+  quiz_session_id?: string;
+  elo_score_after?: number;
 }
 
 // ELO Score types
@@ -111,6 +114,7 @@ export interface ApiError {
 
 export interface QuizResults {
   categoryId: number;
+  userId: number;
   totalQuestions: number;
   correctAnswers: number;
   score: number;

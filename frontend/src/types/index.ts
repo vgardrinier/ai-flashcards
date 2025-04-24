@@ -23,4 +23,21 @@ export interface Category {
   icon: string;
   totalCards: number;
   masteredCards: number;
+}
+
+export interface QuizResults {
+  categoryId: number;
+  userId: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  score: number;
+  timeSpent: number;
+  totalEloChange: number;
+  answers: Array<{
+    questionId: number;
+    selectedOption: string;
+    correct: boolean;
+    explanation: string;
+    scoreChange: number;
+  }>;
 } 

@@ -11,15 +11,68 @@ class QuizAttempt < ApplicationRecord
   validates :elo_score_after, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   
   # Automatically determine if the answer is correct and calculate score change
+  before_validation :set_quiz_session_id, on: :create
+  before_validation :set_initial_score, on: :create
   before_validation :check_answer_and_calculate_score, on: :create
   before_create :calculate_elo_score_after
   after_create :update_elo_score
+  
+  # Scope to get attempts by session
+  scope :by_session, -> { group(:quiz_session_id) }
+  
+  # Get the last attempt in a session to see final score
+  scope :last_in_session, -> { order(created_at: :desc).first }
   
   def correct?
     selected_option == quiz_question.correct_option
   end
   
+  # Calculate total score change for a session
+  def self.total_session_change(quiz_session_id)
+    where(quiz_session_id: quiz_session_id).sum(:score_change)
+  end
+  
+  # Get all unique quiz sessions for a user
+  def self.unique_sessions_for_user(user_id)
+    where(user_id: user_id).group(:quiz_session_id).pluck(:quiz_session_id)
+  end
+  
+  # Get the final ELO score for a session
+  def self.final_score_for_session(quiz_session_id)
+    where(quiz_session_id: quiz_session_id).order(created_at: :desc).first&.elo_score_after
+  end
+  
+  # Get the initial ELO score for a session
+  def self.initial_score_for_session(quiz_session_id)
+    where(quiz_session_id: quiz_session_id).order(created_at: :asc).first&.initial_score
+  end
+  
   private
+  
+  def set_quiz_session_id
+    # Generate a session ID if not provided
+    self.quiz_session_id ||= generate_session_id
+  end
+  
+  def set_initial_score
+    # Store the initial score before any changes
+    self.initial_score = user.elo_score.score
+  end
+  
+  def generate_session_id
+    # Use existing session ID if another attempt was made in the same minute
+    recent_attempt = QuizAttempt.where(user_id: user_id)
+                              .where('created_at >= ?', 5.minutes.ago)
+                              .order(created_at: :desc)
+                              .first
+    
+    if recent_attempt&.quiz_session_id.present?
+      return recent_attempt.quiz_session_id
+    end
+    
+    # Otherwise generate a new session ID
+    "quiz_#{user_id}_#{Time.now.to_i}"
+  end
   
   def check_answer_and_calculate_score
     self.correct = correct?

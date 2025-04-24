@@ -59,22 +59,25 @@ export const quizAPI = {
   getById: (id: number): Promise<AxiosResponse<ApiResponse<QuizQuestion>>> => 
     api.get(`/quiz_questions/${id}`),
   
-  submitAnswer: (questionId: number, userId: number, selectedOption: 'a' | 'b' | 'c' | 'd', difficulty: number): Promise<AxiosResponse<ApiResponse<QuizAttemptResponse>>> => {
+  submitAnswer: (questionId: number, userId: number, selectedOption: 'a' | 'b' | 'c' | 'd', difficulty: number, quizSessionId?: string): Promise<AxiosResponse<ApiResponse<QuizAttemptResponse>>> => {
     console.log('API layer - submitAnswer called with:', {
       questionId,
       userId,
       selectedOption,
       difficulty,
+      quizSessionId,
       typeof_questionId: typeof questionId,
       typeof_userId: typeof userId,
       typeof_selectedOption: typeof selectedOption,
-      typeof_difficulty: typeof difficulty
+      typeof_difficulty: typeof difficulty,
+      typeof_quizSessionId: typeof quizSessionId
     });
     
     const data = {
       user_id: userId,
       selected_option: selectedOption,
-      difficulty: difficulty
+      difficulty: difficulty,
+      quiz_session_id: quizSessionId
     };
     
     console.log('API layer - Request data:', JSON.stringify(data));

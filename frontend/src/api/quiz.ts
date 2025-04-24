@@ -24,14 +24,21 @@ export class QuizApiService extends BaseApiService {
     } as InternalAxiosRequestConfig);
   }
 
-  async submitAnswer(questionId: number, userId: number, selectedOption: string, difficulty: number): Promise<ApiResponse<QuizAttemptResponse>> {
+  async submitAnswer(
+    questionId: number, 
+    userId: number, 
+    selectedOption: string, 
+    difficulty: number,
+    quizSessionId?: string
+  ): Promise<ApiResponse<QuizAttemptResponse>> {
     return this.request<QuizAttemptResponse>({
       method: 'POST',
       url: `/quiz_questions/${questionId}/attempt`,
       data: {
         user_id: userId,
         selected_option: selectedOption,
-        difficulty: difficulty
+        difficulty: difficulty,
+        quiz_session_id: quizSessionId
       },
       headers: {},
     } as InternalAxiosRequestConfig);
