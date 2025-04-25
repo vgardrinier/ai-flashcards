@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_04_17_120613) do
+ActiveRecord::Schema[7.1].define(version: 2025_04_25_081308) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -59,7 +59,10 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_17_120613) do
     t.datetime "updated_at", null: false
     t.integer "elo_score_after"
     t.integer "difficulty"
+    t.string "quiz_session_id"
+    t.integer "initial_score"
     t.index ["quiz_question_id"], name: "index_quiz_attempts_on_quiz_question_id"
+    t.index ["quiz_session_id"], name: "index_quiz_attempts_on_quiz_session_id"
     t.index ["user_id"], name: "index_quiz_attempts_on_user_id"
   end
 
@@ -88,7 +91,18 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_17_120613) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["flashcard_id"], name: "index_user_progresses_on_flashcard_id"
+    t.index ["user_id", "next_review"], name: "index_user_progresses_on_user_id_and_next_review"
     t.index ["user_id"], name: "index_user_progresses_on_user_id"
+  end
+
+  create_table "user_settings", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "notification_preference"
+    t.string "ui_theme"
+    t.string "timezone"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_user_settings_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -97,6 +111,16 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_17_120613) do
     t.string "password_digest"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "role", default: "user"
+    t.string "full_name"
+    t.string "avatar_url"
+    t.boolean "email_verified", default: false
+    t.string "verification_token"
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["role"], name: "index_users_on_role"
+    t.index ["username"], name: "index_users_on_username", unique: true
   end
 
   add_foreign_key "elo_scores", "users"
@@ -106,4 +130,5 @@ ActiveRecord::Schema[7.1].define(version: 2025_04_17_120613) do
   add_foreign_key "quiz_questions", "categories"
   add_foreign_key "user_progresses", "flashcards"
   add_foreign_key "user_progresses", "users"
+  add_foreign_key "user_settings", "users"
 end

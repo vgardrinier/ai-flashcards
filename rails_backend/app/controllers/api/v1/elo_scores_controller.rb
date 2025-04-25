@@ -22,10 +22,9 @@ class Api::V1::EloScoresController < ApplicationController
   # GET /api/v1/elo_scores/:user_id/history
   def history
     user = User.find(params[:user_id])
-    attempts = user.quiz_attempts.order(created_at: :asc)
     
     # If there are no attempts, return just the current score
-    if attempts.empty?
+    if user.quiz_attempts.empty?
       render json: [{
         date: user.elo_score.created_at,
         score: user.elo_score.score,
@@ -34,14 +33,48 @@ class Api::V1::EloScoresController < ApplicationController
       return
     end
     
-    # Return the history of scores from quiz attempts
-    history = attempts.map do |attempt|
-      {
-        date: attempt.created_at,
-        score: attempt.elo_score_after,
-        change: attempt.score_change
+    # Get unique quiz sessions
+    sessions = QuizAttempt.unique_sessions_for_user(user.id).compact
+    
+    # Create history entries for each session
+    history = []
+    
+    # Add initial score entry if it doesn't exist
+    first_attempt = user.quiz_attempts.order(created_at: :asc).first
+    if first_attempt && first_attempt.initial_score
+      history << {
+        date: user.elo_score.created_at,
+        score: first_attempt.initial_score,
+        change: 0,
+        session_id: nil
       }
     end
+    
+    # Process each session
+    sessions.each do |session_id|
+      next unless session_id.present?
+      
+      # Get the last attempt in the session to get the final score
+      last_attempt = user.quiz_attempts.where(quiz_session_id: session_id).order(created_at: :desc).first
+      first_attempt = user.quiz_attempts.where(quiz_session_id: session_id).order(created_at: :asc).first
+      
+      next unless last_attempt && first_attempt
+      
+      # Calculate total change for the session
+      total_change = user.quiz_attempts.where(quiz_session_id: session_id).sum(:score_change)
+      
+      # Add entry for this session
+      history << {
+        date: last_attempt.created_at,
+        score: last_attempt.elo_score_after,
+        change: total_change,
+        session_id: session_id,
+        initial_score: first_attempt.initial_score
+      }
+    end
+    
+    # Sort by date
+    history = history.sort_by { |entry| entry[:date] }
     
     render json: history
   end

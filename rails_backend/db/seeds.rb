@@ -15,7 +15,11 @@ levels = [
 ]
 
 levels.each do |level_data|
-  EloLevel.create!(level_data)
+  EloLevel.find_or_create_by!(name: level_data[:name]) do |level|
+    level.min_score = level_data[:min_score]
+    level.max_score = level_data[:max_score]
+    level.description = level_data[:description]
+  end
 end
 
 # Create AI categories
@@ -27,7 +31,9 @@ categories = [
 ]
 
 categories.each do |category_data|
-  Category.create!(category_data)
+  Category.find_or_create_by!(name: category_data[:name]) do |category|
+    category.description = category_data[:description]
+  end
 end
 
 # Create sample flashcards and quiz questions for each category
@@ -37,24 +43,26 @@ agents_category = Category.find_by(name: "AI Agents")
 cto_category = Category.find_by(name: "Tech CTO Skills")
 
 # Sample flashcards for AI Fundamentals
-Flashcard.create!(
-  category: ai_fundamentals,
+Flashcard.find_or_create_by!(
   question: "What is the difference between supervised and unsupervised learning?",
-  answer: "Supervised learning uses labeled data with known outputs, while unsupervised learning works with unlabeled data to find patterns.",
-  explanation: "In supervised learning, the algorithm learns from labeled training data to make predictions or decisions. Unsupervised learning identifies patterns in unlabeled data without predefined outputs."
-)
+  category: ai_fundamentals
+) do |flashcard|
+  flashcard.answer = "Supervised learning uses labeled data with known outputs, while unsupervised learning works with unlabeled data to find patterns."
+  flashcard.explanation = "In supervised learning, the algorithm learns from labeled training data to make predictions or decisions. Unsupervised learning identifies patterns in unlabeled data without predefined outputs."
+end
 
 # Sample quiz questions for AI Fundamentals
-QuizQuestion.create!(
-  category: ai_fundamentals,
+QuizQuestion.find_or_create_by!(
   question: "Which of the following is NOT a type of neural network?",
-  option_a: "Convolutional Neural Network (CNN)",
-  option_b: "Recurrent Neural Network (RNN)",
-  option_c: "Quantum Neural Network (QNN)",
-  option_d: "Algorithmic Regression Network (ARN)",
-  correct_option: "d",
-  difficulty: 3
-)
+  category: ai_fundamentals
+) do |quiz|
+  quiz.option_a = "Convolutional Neural Network (CNN)"
+  quiz.option_b = "Recurrent Neural Network (RNN)"
+  quiz.option_c = "Quantum Neural Network (QNN)"
+  quiz.option_d = "Algorithmic Regression Network (ARN)"
+  quiz.correct_option = "d"
+  quiz.difficulty = 3
+end
 
 QuizQuestion.create!(
   category: ai_fundamentals,
@@ -240,3 +248,39 @@ QuizQuestion.create!([
     category_id: 3
   }
 ])
+
+# Create admin user if it doesn't exist
+if User.find_by(username: 'admin').nil?
+  puts "Creating admin user..."
+  admin = User.create!(
+    username: 'admin',
+    email: 'admin@example.com',
+    password: 'Admin123!',
+    password_confirmation: 'Admin123!',
+    role: 'admin',
+    email_verified: true,
+    full_name: 'Admin User'
+  )
+  puts "Admin user created with ID: #{admin.id}"
+else
+  puts "Admin user already exists"
+end
+
+# Create regular user if it doesn't exist
+if User.find_by(username: 'user').nil?
+  puts "Creating regular user..."
+  user = User.create!(
+    username: 'user',
+    email: 'user@example.com',
+    password: 'User123!',
+    password_confirmation: 'User123!',
+    role: 'user',
+    email_verified: true,
+    full_name: 'Regular User'
+  )
+  puts "Regular user created with ID: #{user.id}"
+else
+  puts "Regular user already exists"
+end
+
+puts "Seed completed successfully!"

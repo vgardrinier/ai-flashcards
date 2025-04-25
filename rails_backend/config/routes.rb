@@ -5,7 +5,7 @@ Rails.application.routes.draw do
       
       resources :categories, only: [:index, :show, :create]
       
-      resources :flashcards, only: [:index, :show, :create, :update]
+      resources :flashcards, only: [:index, :show, :create, :update, :destroy]
       
       resources :quiz_questions, only: [:index, :show, :create] do
         collection do
@@ -31,6 +31,23 @@ Rails.application.routes.draw do
           get 'levels', to: 'elo_scores#levels'
         end
       end
+      
+      # User profile and settings
+      get 'profile', to: 'profiles#show'
+      put 'profile', to: 'profiles#update'
+      put 'profile/change_password', to: 'profiles#change_password'
+      
+      # User settings
+      get 'user_settings', to: 'user_settings#show'
+      put 'user_settings', to: 'user_settings#update'
+      
+      # Email verification
+      get 'verify_email/:token', to: 'auth#verify_email'
+      post 'resend_verification', to: 'auth#resend_verification'
+      
+      # Password reset
+      post 'forgot_password', to: 'auth#forgot_password'
+      put 'reset_password/:token', to: 'auth#reset_password'
       
       # Testing routes
       namespace :tests do

@@ -82,6 +82,7 @@ interface QuizProps {
   onComplete: (results: QuizResults) => void;
   timed?: boolean;
   timeLimit?: number;
+  maxQuestions?: number; // New prop for limiting the number of questions
 }
 
 const Quiz: React.FC<QuizProps> = ({
@@ -90,25 +91,29 @@ const Quiz: React.FC<QuizProps> = ({
   onComplete,
   timed = false,
   timeLimit = 60,
-}) => {
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  maxQuestions,
+}): React.ReactElement => {
+  const [allQuestions, setAllQuestions] = useState<QuizQuestion[]>([]); // All fetched questions
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]); // Questions to be used in the quiz
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<'a' | 'b' | 'c' | 'd' | null>(null);
-  const [correct, setCorrect] = useState<boolean | null>(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [explanation, setExplanation] = useState('');
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [scoreChange, setScoreChange] = useState<number | null>(null);
-  const [explanation, setExplanation] = useState<string>('');
-  const [timeLeft, setTimeLeft] = useState<number>(timeLimit || 0);
+  const [timeLeft, setTimeLeft] = useState(timeLimit);
+  const [quizSessionId, setQuizSessionId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [results, setResults] = useState<QuizResults>({
     categoryId,
+    userId,
     totalQuestions: 0,
     correctAnswers: 0,
     score: 0,
     totalEloChange: 0,
-    answers: [],
+    answers: []
   });
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
@@ -128,6 +133,17 @@ const Quiz: React.FC<QuizProps> = ({
     };
   };
 
+  // Select a subset of questions
+  const selectQuestions = (allQuestions: QuizQuestion[], maxCount?: number) => {
+    if (!maxCount || maxCount >= allQuestions.length) {
+      return [...allQuestions]; // Use all questions if no limit or if limit exceeds available questions
+    }
+    
+    // Randomly select maxCount questions
+    const shuffled = [...allQuestions].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, maxCount);
+  };
+
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -135,8 +151,12 @@ const Quiz: React.FC<QuizProps> = ({
         if (response.status >= 200 && response.status < 300) {
           const apiQuestions = response.data as unknown as ApiQuizQuestion[];
           const convertedQuestions = apiQuestions.map(convertApiQuestionToQuizQuestion);
-          setQuestions(convertedQuestions);
-          setResults(prev => ({ ...prev, totalQuestions: convertedQuestions.length }));
+          setAllQuestions(convertedQuestions);
+          
+          // Select questions based on maxQuestions
+          const selectedQuestions = selectQuestions(convertedQuestions, maxQuestions);
+          setQuestions(selectedQuestions);
+          setResults(prev => ({ ...prev, totalQuestions: selectedQuestions.length }));
         } else {
           setError(`Failed to fetch questions: ${response.status} ${response.statusText}`);
         }
@@ -150,7 +170,7 @@ const Quiz: React.FC<QuizProps> = ({
     };
 
     fetchQuestions();
-  }, [categoryId]);
+  }, [categoryId, maxQuestions]);
 
   // Timer effect for timed quizzes
   useEffect(() => {
@@ -183,6 +203,7 @@ const Quiz: React.FC<QuizProps> = ({
     if (showExplanation) return;
     
     setSelectedOption(option);
+    
     try {
       // Ensure difficulty is within valid range (1-5)
       const questionDifficulty = Math.min(Math.max(questions[currentQuestionIndex].difficulty, 1), 5);
@@ -191,14 +212,27 @@ const Quiz: React.FC<QuizProps> = ({
         questions[currentQuestionIndex].id,
         userId,
         option,
-        questionDifficulty
+        questionDifficulty,
+        quizSessionId
       );
       
       if (response.status >= 200 && response.status < 300 && response.data.data) {
-        const { correct: isCorrect, score_change: scoreChange, explanation: apiExplanation } = response.data.data;
+        const { 
+          correct: isCorrect, 
+          score_change: scoreChange, 
+          explanation: apiExplanation,
+          quiz_session_id: responseSessionId,
+          elo_score_after: eloScoreAfter
+        } = response.data.data;
+        
         const currentExplanation = apiExplanation || questions[currentQuestionIndex].explanation || 'No explanation available.';
         
-        setCorrect(isCorrect);
+        // Store the session ID for future questions in this quiz
+        if (responseSessionId && quizSessionId === undefined) {
+          setQuizSessionId(responseSessionId);
+        }
+        
+        setIsCorrect(isCorrect);
         setScoreChange(scoreChange);
         setExplanation(currentExplanation);
         
@@ -208,7 +242,8 @@ const Quiz: React.FC<QuizProps> = ({
           console.log('Updating totalEloChange:', {
             previous: prev.totalEloChange,
             currentChange: scoreChange,
-            newTotal: newTotalEloChange
+            newTotal: newTotalEloChange,
+            sessionId: responseSessionId
           });
           
           return {
@@ -243,7 +278,7 @@ const Quiz: React.FC<QuizProps> = ({
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setSelectedOption(null);
-      setCorrect(null);
+      setIsCorrect(null);
       setScoreChange(null);
       setExplanation('');
       setShowExplanation(false);
@@ -258,7 +293,7 @@ const Quiz: React.FC<QuizProps> = ({
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
       setSelectedOption(null);
-      setCorrect(null);
+      setIsCorrect(null);
       setScoreChange(null);
       setExplanation('');
       setShowExplanation(false);
@@ -344,6 +379,7 @@ const Quiz: React.FC<QuizProps> = ({
         </Typography>
 
         {results.answers.map((answer, index) => {
+          const question = questions.find(q => q.id === answer.questionId);
           return (
             <ResultCard key={answer.questionId} variant="outlined">
               <CardContent>
@@ -363,7 +399,7 @@ const Quiz: React.FC<QuizProps> = ({
                   </Box>
                 </Box>
                 <Typography variant="body1" gutterBottom>
-                  {questions[index].question}
+                  {question?.question}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Your answer: {answer.selectedOption}
@@ -390,48 +426,28 @@ const Quiz: React.FC<QuizProps> = ({
         <Alert severity="error">{error}</Alert>
       ) : quizCompleted ? (
         <Box>
-          <Typography variant="h5" gutterBottom>
-            Quiz Completed!
+          <Typography variant="h4" gutterBottom>Quiz Completed!</Typography>
+          <Typography variant="body1">
+            You answered {results.correctAnswers} out of {results.totalQuestions} questions correctly.
           </Typography>
-          <Typography variant="body1" gutterBottom>
-            Your score: {results.score}%
+          <Typography variant="body1">
+            Your final score is {results.score}%.
           </Typography>
-          <Typography variant="body1" gutterBottom>
-            Correct answers: {results.correctAnswers} out of {results.totalQuestions}
-          </Typography>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6" gutterBottom>
-            Answers:
-          </Typography>
-          {results.answers.map((answer, index) => (
-            <Box key={index} mb={2}>
-              <Typography variant="body1">
-                Question {index + 1}: {questions[index].question}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Your answer: {answer.selectedOption.toUpperCase()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Correct answer: {questions[index].correct_option.toUpperCase()}
-              </Typography>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
-                <Chip 
-                  size="small"
-                  label={answer.correct ? "Correct" : "Incorrect"} 
-                  color={answer.correct ? "success" : "error"} 
-                />
-              </Box>
-              {answer.explanation && (
-                <Typography variant="body2" color="text.secondary">
-                  Explanation: {answer.explanation}
-                </Typography>
-              )}
-              <Divider sx={{ my: 1 }} />
-            </Box>
-          ))}
+          <Button 
+            variant="contained" 
+            onClick={() => onComplete(results)}
+            sx={{ mt: 2 }}
+          >
+            View Results
+          </Button>
         </Box>
       ) : (
         <Box>
+          {timed && (
+            <Typography variant="h6" gutterBottom>
+              Time Left: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+            </Typography>
+          )}
           <ProgressContainer>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Question {currentQuestionIndex + 1} of {questions.length}
@@ -441,75 +457,64 @@ const Quiz: React.FC<QuizProps> = ({
               value={progress} 
             />
           </ProgressContainer>
-          {timed && (
-            <Box display="flex" justifyContent="flex-end" mb={2}>
-              <Chip 
-                label={`Time left: ${timeLeft}s`} 
-                color={timeLeft <= 10 ? "error" : "default"}
-              />
-            </Box>
-          )}
-          <QuestionContainer>
-            <Typography variant="h6" gutterBottom>
-              {currentQuestion.question}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              {currentQuestion.explanation}
-            </Typography>
-            <FormControl component="fieldset" sx={{ mt: 2 }}>
-              <RadioGroup
-                value={selectedOption}
-                onChange={handleOptionChange}
-              >
-                <FormControlLabel
-                  value="a"
-                  control={<Radio />}
-                  label={currentQuestion.option_a}
-                />
-                <FormControlLabel
-                  value="b"
-                  control={<Radio />}
-                  label={currentQuestion.option_b}
-                />
-                <FormControlLabel
-                  value="c"
-                  control={<Radio />}
-                  label={currentQuestion.option_c}
-                />
-                <FormControlLabel
-                  value="d"
-                  control={<Radio />}
-                  label={currentQuestion.option_d}
-                />
-              </RadioGroup>
-            </FormControl>
-          </QuestionContainer>
-          {showExplanation && (
-            <ResultCard>
-              <CardContent>
-                <Typography variant="body1" gutterBottom>
-                  {correct ? "Correct!" : "Incorrect"}
-                </Typography>
-                {scoreChange !== null && (
-                  <>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Score change for this question: {scoreChange > 0 ? "+" : ""}{scoreChange}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                {currentQuestion.question}
+              </Typography>
+              <FormControl component="fieldset">
+                <RadioGroup
+                  value={selectedOption || ''}
+                  onChange={handleOptionChange}
+                >
+                  <FormControlLabel 
+                    value="a" 
+                    control={<Radio />} 
+                    label={questions[currentQuestionIndex].option_a}
+                    disabled={showExplanation}
+                  />
+                  <FormControlLabel 
+                    value="b" 
+                    control={<Radio />} 
+                    label={questions[currentQuestionIndex].option_b}
+                    disabled={showExplanation}
+                  />
+                  <FormControlLabel 
+                    value="c" 
+                    control={<Radio />} 
+                    label={questions[currentQuestionIndex].option_c}
+                    disabled={showExplanation}
+                  />
+                  <FormControlLabel 
+                    value="d" 
+                    control={<Radio />} 
+                    label={questions[currentQuestionIndex].option_d}
+                    disabled={showExplanation}
+                  />
+                </RadioGroup>
+              </FormControl>
+              {showExplanation && (
+                <Box sx={{ mt: 2 }}>
+                  <CardContent>
+                    <Typography variant="body1" gutterBottom>
+                      {isCorrect ? "Correct!" : "Incorrect"}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Note: Your ELO score is updated after each question. The final score will reflect all your accumulated changes.
+                    {scoreChange !== null && (
+                      <Typography variant="body1" gutterBottom>
+                        Score Change: {scoreChange > 0 ? '+' : ''}{scoreChange}
+                      </Typography>
+                    )}
+                    <Typography variant="body1">
+                      {explanation}
                     </Typography>
-                  </>
-                )}
-                <Typography variant="body2" color="text.secondary">
-                  {explanation}
-                </Typography>
-              </CardContent>
-            </ResultCard>
-          )}
-          <ActionContainer>
+                  </CardContent>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
             <Button
               variant="contained"
-              color="primary"
               onClick={handlePreviousQuestion}
               disabled={currentQuestionIndex === 0}
             >
@@ -517,13 +522,12 @@ const Quiz: React.FC<QuizProps> = ({
             </Button>
             <Button
               variant="contained"
-              color="primary"
               onClick={handleNextQuestion}
-              disabled={!selectedOption}
+              disabled={!showExplanation}
             >
-              {currentQuestionIndex === questions.length - 1 ? "Finish" : "Next"}
+              {currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next'}
             </Button>
-          </ActionContainer>
+          </Box>
         </Box>
       )}
     </QuizContainer>

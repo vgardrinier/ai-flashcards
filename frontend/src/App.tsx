@@ -35,6 +35,7 @@ import { eloAPI } from './api/eloAPI';
 import Dashboard from './components/Dashboard';
 import Flashcard from './components/Flashcard';
 import Quiz from './components/Quiz';
+import QuizSelector from './components/QuizSelector';
 import ProgressTracking from './components/ProgressTracking';
 import EloScoreDisplay from './components/EloScoreDisplay';
 import EloLevelProgression from './components/EloLevelProgression';
@@ -44,7 +45,7 @@ import { RecentActivity, ELOLevel, Category } from './types';
 import { QuizResults } from './types/api';
 import { quizQuestions } from './data/quizQuestions';
 import theme from './theme';
-import Resources from './components/Resources';
+import QuestionGenerator from './components/QuestionGenerator';
 
 // Verify the imported eloAPI
 console.log('App component - Imported eloAPI:', {
@@ -537,12 +538,10 @@ const App: React.FC = () => {
         return (
           <Box sx={{ p: 3 }}>
             <Typography variant="h4" gutterBottom>Quiz</Typography>
-            <Quiz
+            <QuizSelector
               categoryId={1}
               userId={userData.userId}
               onComplete={onComplete}
-              timed={true}
-              timeLimit={60}
             />
           </Box>
         );
@@ -579,19 +578,10 @@ const App: React.FC = () => {
             />
           </Box>
         );
-      case 'settings':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h4" gutterBottom>Settings</Typography>
-            <Typography paragraph>
-              Settings page content will go here.
-            </Typography>
-          </Box>
-        );
       case 'api-test':
         return <ApiTest />;
-      case 'resources':
-        return <Resources />;
+      case 'questions':
+        return <QuestionGenerator />;
       default:
         return (
           <Box sx={{ p: 3 }}>
@@ -625,8 +615,7 @@ const App: React.FC = () => {
                 <Button color="inherit" onClick={() => handleNavigation('dashboard')}>Dashboard</Button>
                 <Button color="inherit" onClick={() => handleNavigation('progress')}>Progress</Button>
                 <Button color="inherit" onClick={() => handleNavigation('flashcards')}>Flashcards</Button>
-                <Button color="inherit" onClick={() => handleNavigation('settings')}>Settings</Button>
-                <Button color="inherit" onClick={() => handleNavigation('resources')}>Resources</Button>
+                <Button color="inherit" onClick={() => handleNavigation('questions')}>Questions</Button>
               </Box>
             </Box>
             <Button 

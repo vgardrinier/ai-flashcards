@@ -55,6 +55,7 @@ class Api::V1::QuizQuestionsController < ApplicationController
       user_id = params.require(:user_id)
       selected_option = params.require(:selected_option)
       difficulty = params[:difficulty]
+      quiz_session_id = params[:quiz_session_id]
 
       quiz_question = QuizQuestion.find(params[:id])
       user = User.find(user_id)
@@ -64,6 +65,7 @@ class Api::V1::QuizQuestionsController < ApplicationController
         quiz_question: quiz_question,
         selected_option: selected_option,
         difficulty: difficulty,
+        quiz_session_id: quiz_session_id, # This will be auto-generated if nil
         correct: selected_option == quiz_question.correct_option
       )
 
@@ -72,7 +74,9 @@ class Api::V1::QuizQuestionsController < ApplicationController
           data: {
             correct: quiz_attempt.correct,
             score_change: quiz_attempt.score_change,
-            explanation: quiz_question.explanation
+            explanation: quiz_question.explanation,
+            quiz_session_id: quiz_attempt.quiz_session_id, # Return the session ID for future attempts
+            elo_score_after: quiz_attempt.elo_score_after
           }
         }
       else
