@@ -4,50 +4,53 @@ This document provides instructions for deploying the AI Flashcards application.
 
 ## Prerequisites
 
-- Node.js (v16+)
-- MongoDB (v4.4+)
+- Ruby 2.7.8
+- PostgreSQL 12+
+- Node.js 16+
 - npm or yarn
 
 ## Backend Deployment
 
 1. Navigate to the backend directory:
    ```
-   cd /home/ubuntu/ai_flashcards/backend
+   cd /path/to/ai_flashcards/rails_backend
    ```
 
 2. Install dependencies:
    ```
-   npm install
+   bundle install
    ```
 
-3. Create a `.env` file with the following variables:
+3. Configure environment variables:
    ```
-   PORT=5000
-   MONGO_URI=mongodb://localhost:27017/ai_flashcards
-   JWT_SECRET=your_jwt_secret_key
-   NODE_ENV=production
-   ```
-
-4. Initialize the database with ELO levels:
-   ```
-   node src/scripts/initEloLevels.js
+   # Create master.key or use existing one to decrypt credentials.yml.enc
+   # Set the following in Rails credentials
+   RAILS_MASTER_KEY=your_master_key
+   OPENAI_API_KEY=your_openai_api_key
    ```
 
-5. Import flashcards and quiz questions:
+4. Setup the database:
    ```
-   node src/scripts/importContent.js
+   RAILS_ENV=production rails db:create
+   RAILS_ENV=production rails db:migrate
+   RAILS_ENV=production rails db:seed
+   ```
+
+5. Precompile assets (if needed):
+   ```
+   RAILS_ENV=production rails assets:precompile
    ```
 
 6. Start the server:
    ```
-   npm start
+   RAILS_ENV=production rails s -p 3001
    ```
 
 ## Frontend Deployment
 
 1. Navigate to the frontend directory:
    ```
-   cd /home/ubuntu/ai_flashcards/frontend
+   cd /path/to/ai_flashcards/frontend
    ```
 
 2. Install dependencies:
@@ -57,7 +60,7 @@ This document provides instructions for deploying the AI Flashcards application.
 
 3. Create a `.env` file with the following variables:
    ```
-   REACT_APP_API_URL=http://localhost:5000/api
+   REACT_APP_API_URL=https://your-api-domain.com/api/v1
    ```
 
 4. Build the production version:
@@ -70,31 +73,44 @@ This document provides instructions for deploying the AI Flashcards application.
    npx serve -s build
    ```
 
+6. Alternatively, deploy to a static hosting service:
+   ```
+   # For Netlify
+   netlify deploy --prod
+   
+   # For Vercel
+   vercel --prod
+   ```
+
 ## Docker Deployment (Alternative)
 
 1. Create a `docker-compose.yml` file in the root directory:
    ```yaml
    version: '3'
    services:
-     mongodb:
-       image: mongo:4.4
+     postgres:
+       image: postgres:12
        ports:
-         - "27017:27017"
+         - "5432:5432"
        volumes:
-         - mongodb_data:/data/db
+         - postgres_data:/var/lib/postgresql/data
+       environment:
+         - POSTGRES_USER=postgres
+         - POSTGRES_PASSWORD=password
+         - POSTGRES_DB=ai_flashcards_production
        restart: always
 
-     backend:
-       build: ./backend
+     rails_backend:
+       build: ./rails_backend
        ports:
-         - "5000:5000"
+         - "3001:3001"
        depends_on:
-         - mongodb
+         - postgres
        environment:
-         - PORT=5000
-         - MONGO_URI=mongodb://mongodb:27017/ai_flashcards
-         - JWT_SECRET=your_jwt_secret_key
-         - NODE_ENV=production
+         - RAILS_ENV=production
+         - DATABASE_URL=postgres://postgres:password@postgres:5432/ai_flashcards_production
+         - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+         - OPENAI_API_KEY=${OPENAI_API_KEY}
        restart: always
 
      frontend:
@@ -102,24 +118,44 @@ This document provides instructions for deploying the AI Flashcards application.
        ports:
          - "3000:80"
        depends_on:
-         - backend
+         - rails_backend
        environment:
-         - REACT_APP_API_URL=http://localhost:5000/api
+         - REACT_APP_API_URL=http://localhost:3001/api/v1
        restart: always
 
    volumes:
-     mongodb_data:
+     postgres_data:
    ```
 
-2. Create a `Dockerfile` in the backend directory:
+2. Create a `Dockerfile` in the rails_backend directory:
    ```dockerfile
-   FROM node:16-alpine
+   FROM ruby:2.7.8-alpine
+
+   # Install dependencies
+   RUN apk add --update --no-cache \
+       build-base \
+       postgresql-dev \
+       tzdata \
+       nodejs \
+       yarn
+
    WORKDIR /app
-   COPY package*.json ./
-   RUN npm install
+
+   # Install gems
+   COPY Gemfile Gemfile.lock ./
+   RUN bundle install --jobs 4 --retry 3
+
+   # Copy application code
    COPY . .
-   EXPOSE 5000
-   CMD ["npm", "start"]
+
+   # Precompile assets
+   RUN bundle exec rails assets:precompile
+
+   # Expose port
+   EXPOSE 3001
+
+   # Start the server
+   CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-p", "3001"]
    ```
 
 3. Create a `Dockerfile` in the frontend directory:
@@ -133,13 +169,23 @@ This document provides instructions for deploying the AI Flashcards application.
 
    FROM nginx:alpine
    COPY --from=build /app/build /usr/share/nginx/html
+   # Add nginx configuration for SPA routing
+   COPY nginx.conf /etc/nginx/conf.d/default.conf
    EXPOSE 80
    CMD ["nginx", "-g", "daemon off;"]
    ```
 
 4. Deploy with Docker Compose:
    ```
+   # Export required environment variables
+   export RAILS_MASTER_KEY=your_master_key
+   export OPENAI_API_KEY=your_openai_api_key
+   
+   # Start containers
    docker-compose up -d
+   
+   # Initialize database (first time only)
+   docker-compose exec rails_backend rails db:create db:migrate db:seed
    ```
 
 ## Public Deployment

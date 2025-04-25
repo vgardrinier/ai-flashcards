@@ -24,21 +24,28 @@ class ApplicationController < ActionController::API
     @current_user
   end
   
+  # Check if user is an admin
+  def require_admin
+    authenticate_user
+    unless @current_user&.role == 'admin'
+      render json: { error: 'Forbidden: Admin access required' }, status: :forbidden
+    end
+  end
+  
   private
   
   def decode_token(token)
-    # In a real application, use a proper JWT library with verification
-    # This is a simplified version for demonstration
-    require 'base64'
-    payload = JSON.parse(Base64.strict_decode64(token))
-    
-    if payload['exp'] < Time.now.to_i
+    # Proper JWT implementation
+    begin
+      decoded = JWT.decode(token, Rails.application.credentials.secret_key_base, true, { algorithm: 'HS256' })[0]
+      return decoded['user_id']
+    rescue JWT::ExpiredSignature
+      # Token has expired
       nil
-    else
-      payload['user_id']
+    rescue JWT::DecodeError
+      # Invalid token
+      nil
     end
-  rescue
-    nil
   end
   
   def valid_token?(token)
