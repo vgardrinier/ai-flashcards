@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Typography, 
@@ -13,7 +13,8 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar
+  ListItemAvatar,
+  CircularProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { Radar, Line } from 'react-chartjs-2';
@@ -28,6 +29,8 @@ import {
   CategoryScale,
   LinearScale,
 } from 'chart.js';
+// Import APIs
+import progressAPI from '../api/progress';
 
 // Register ChartJS components
 ChartJS.register(
@@ -81,11 +84,19 @@ interface CategoryScore {
 }
 
 interface QuizHistoryItem {
-  date: Date;
+  date: Date | string;
   category: string;
   score: number;
   correctAnswers: number;
   totalQuestions: number;
+}
+
+interface ProgressStats {
+  studyStreak: number;
+  cardsReviewed: number;
+  timeSpent: number;
+  categoryScores: CategoryScore[];
+  quizHistory: QuizHistoryItem[];
 }
 
 interface ProgressTrackingProps {
@@ -94,11 +105,13 @@ interface ProgressTrackingProps {
   currentLevel: ELOLevel | null;
   nextLevel: ELOLevel | null;
   progressToNextLevel: number;
-  categoryScores: CategoryScore[];
-  quizHistory: QuizHistoryItem[];
-  studyStreak: number;
-  cardsReviewed: number;
-  timeSpent: number; // in minutes
+  userId: number;
+  // Following props are optional since we'll load them from API
+  categoryScores?: CategoryScore[];
+  quizHistory?: QuizHistoryItem[];
+  studyStreak?: number;
+  cardsReviewed?: number;
+  timeSpent?: number;
 }
 
 const ProgressTracking: React.FC<ProgressTrackingProps> = ({
@@ -107,27 +120,156 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
   currentLevel,
   nextLevel,
   progressToNextLevel,
-  categoryScores,
-  quizHistory,
-  studyStreak,
-  cardsReviewed,
-  timeSpent,
+  userId,
+  // Use default props values if not provided
+  categoryScores: initialCategoryScores = [],
+  quizHistory: initialQuizHistory = [],
+  studyStreak: initialStudyStreak = 0,
+  cardsReviewed: initialCardsReviewed = 0,
+  timeSpent: initialTimeSpent = 0,
 }) => {
-  if (!overallScore || !currentLevel || !nextLevel) {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // State for progress statistics
+  const [stats, setStats] = useState<ProgressStats>({
+    studyStreak: initialStudyStreak,
+    cardsReviewed: initialCardsReviewed,
+    timeSpent: initialTimeSpent,
+    categoryScores: initialCategoryScores,
+    quizHistory: initialQuizHistory
+  });
+
+  // Fetch progress statistics from the API with fallback to sample data
+  useEffect(() => {
+    // Flag to track if component is mounted
+    let isMounted = true;
+    
+    const fetchProgressStats = async () => {
+      try {
+        console.log('Fetching progress stats for user ID:', userId);
+        if (isMounted) setLoading(true);
+        
+        // Log the API URL being called
+        console.log('API URL:', `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1'}/progress/stats/${userId}`);
+        
+        const response = await progressAPI.getStats(userId);
+        console.log('Progress stats API response:', response);
+        
+        // For API responses without a data wrapper (direct response)
+        const statsData = response.data && response.data.data ? response.data.data : response.data;
+        console.log('Stats data from API:', statsData);
+        
+        // Only update state if component is still mounted
+        if (statsData && isMounted) {
+          // Use type assertion to let TypeScript know the expected structure
+          const typedData = statsData as {
+            studyStreak?: number;
+            cardsReviewed?: number;
+            timeSpent?: number;
+            categoryScores?: CategoryScore[];
+            quizHistory?: any[];
+          };
+          
+          // Convert date strings to Date objects for quiz history
+          const quizHistory = typedData.quizHistory && typedData.quizHistory.length
+            ? typedData.quizHistory.map((quiz: any) => ({
+                ...quiz,
+                date: new Date(quiz.date),
+                category: quiz.category || "Unknown",
+                score: Number(quiz.score) || 0,
+                correctAnswers: Number(quiz.correctAnswers) || 0,
+                totalQuestions: Number(quiz.totalQuestions) || 0
+              }))
+            : [];
+          
+          setStats({
+            studyStreak: typedData.studyStreak || initialStudyStreak,
+            cardsReviewed: typedData.cardsReviewed || initialCardsReviewed,
+            timeSpent: typedData.timeSpent || initialTimeSpent,
+            categoryScores: typedData.categoryScores || initialCategoryScores,
+            quizHistory: quizHistory.length ? quizHistory : initialQuizHistory
+          });
+          
+          if (isMounted) setLoading(false);
+        } else if (isMounted) {
+          console.error('Invalid response structure:', response);
+          throw new Error('Invalid response structure');
+        }
+      } catch (error) {
+        console.error('Error fetching progress stats:', error);
+        if (isMounted) {
+          setError('Failed to load progress data');
+          setLoading(false);
+          
+          console.log('Using fallback sample data');
+          
+          // Sample data for demonstration (fallback)
+          const sampleCategoryScores: CategoryScore[] = [
+            { category: "AI Fundamentals", score: 1350, level: { name: "ML Practitioner", minScore: 1200, maxScore: 1399, description: "Building and applying models", badgeIcon: "ml_practitioner.png" } },
+            { category: "Large Language Models", score: 1100, level: { name: "AI Apprentice", minScore: 1000, maxScore: 1199, description: "Learning the fundamentals", badgeIcon: "ai_apprentice.png" } },
+            { category: "AI Agents", score: 950, level: { name: "Novice Explorer", minScore: 0, maxScore: 999, description: "Beginning your journey", badgeIcon: "novice_explorer.png" } },
+            { category: "Tech CTO Skills", score: 1050, level: { name: "AI Apprentice", minScore: 1000, maxScore: 1199, description: "Learning the fundamentals", badgeIcon: "ai_apprentice.png" } }
+          ];
+          
+          const sampleQuizHistory: QuizHistoryItem[] = [
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 0), category: "AI Fundamentals", score: 85, correctAnswers: 17, totalQuestions: 20 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1), category: "Large Language Models", score: 70, correctAnswers: 7, totalQuestions: 10 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), category: "Tech CTO Skills", score: 75, correctAnswers: 15, totalQuestions: 20 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), category: "AI Agents", score: 60, correctAnswers: 6, totalQuestions: 10 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4), category: "AI Fundamentals", score: 80, correctAnswers: 16, totalQuestions: 20 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), category: "Large Language Models", score: 65, correctAnswers: 13, totalQuestions: 20 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6), category: "Tech CTO Skills", score: 70, correctAnswers: 14, totalQuestions: 20 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7), category: "AI Agents", score: 55, correctAnswers: 11, totalQuestions: 20 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8), category: "AI Fundamentals", score: 75, correctAnswers: 15, totalQuestions: 20 },
+            { date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9), category: "Large Language Models", score: 60, correctAnswers: 12, totalQuestions: 20 }
+          ];
+          
+          // Set sample data if API fails
+          setStats({
+            studyStreak: 7,
+            cardsReviewed: 245,
+            timeSpent: 820,
+            categoryScores: sampleCategoryScores,
+            quizHistory: sampleQuizHistory
+          });
+        }
+      }
+    };
+
+    fetchProgressStats();
+    
+    // Cleanup function to set isMounted to false when component unmounts
+    return () => {
+      isMounted = false;
+    };
+  // Only include userId in dependency array to avoid constant re-fetching
+  }, [userId]);
+
+  if (loading || !overallScore || !currentLevel || !nextLevel) {
+    return (
+      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <CircularProgress sx={{ mb: 2 }} />
+        <Typography>Loading progress data...</Typography>
+      </Box>
+    );
+  }
+
+  if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography>Loading progress data...</Typography>
+        <Typography color="error">{error}</Typography>
       </Box>
     );
   }
 
   // Prepare data for radar chart
   const radarData = {
-    labels: categoryScores.map(cat => cat.category),
+    labels: stats.categoryScores.map(cat => cat.category),
     datasets: [
       {
         label: 'ELO Score',
-        data: categoryScores.map(cat => cat.score),
+        data: stats.categoryScores.map(cat => cat.score),
         backgroundColor: 'rgba(63, 81, 181, 0.2)',
         borderColor: 'rgba(63, 81, 181, 1)',
         borderWidth: 2,
@@ -140,9 +282,13 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
   };
 
   // Prepare data for line chart (last 10 quizzes)
-  const recentQuizzes = quizHistory.slice(-10);
+  const recentQuizzes = stats.quizHistory.slice(0, 10); // Already sorted newest first from API
   const lineData = {
-    labels: recentQuizzes.map(quiz => quiz.date.toLocaleDateString()),
+    labels: recentQuizzes.map(quiz => 
+      quiz.date instanceof Date 
+        ? quiz.date.toLocaleDateString() 
+        : new Date(quiz.date).toLocaleDateString()
+    ),
     datasets: [
       {
         label: 'Quiz Scores',
@@ -209,7 +355,7 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
                 <Grid item xs={4}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="primary">
-                      {studyStreak}
+                      {stats.studyStreak}
                     </Typography>
                     <Typography variant="body2">Day Streak</Typography>
                   </Box>
@@ -217,7 +363,7 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
                 <Grid item xs={4}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="primary">
-                      {cardsReviewed}
+                      {stats.cardsReviewed}
                     </Typography>
                     <Typography variant="body2">Cards Reviewed</Typography>
                   </Box>
@@ -225,7 +371,7 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
                 <Grid item xs={4}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h4" color="primary">
-                      {timeSpent}
+                      {stats.timeSpent}
                     </Typography>
                     <Typography variant="body2">Minutes Studied</Typography>
                   </Box>
@@ -269,7 +415,7 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
             </Box>
             <Divider sx={{ my: 2 }} />
             <List>
-              {categoryScores.map((category) => (
+              {stats.categoryScores.map((category) => (
                 <ListItem key={category.category}>
                   <ListItemAvatar>
                     <Avatar sx={{ bgcolor: 'primary.light' }}>
@@ -307,7 +453,9 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
                 <ListItem key={index} divider={index < recentQuizzes.length - 1}>
                   <ListItemText 
                     primary={`${quiz.category} - ${quiz.correctAnswers}/${quiz.totalQuestions} correct`} 
-                    secondary={quiz.date.toLocaleDateString()}
+                    secondary={typeof quiz.date === 'string' 
+                      ? new Date(quiz.date).toLocaleDateString() 
+                      : quiz.date.toLocaleDateString()}
                   />
                   <Chip 
                     size="small"
@@ -327,7 +475,7 @@ const ProgressTracking: React.FC<ProgressTrackingProps> = ({
               Improvement Suggestions
             </Typography>
             <Grid container spacing={2}>
-              {categoryScores
+              {stats.categoryScores
                 .sort((a, b) => a.score - b.score)
                 .slice(0, 3)
                 .map((category) => (

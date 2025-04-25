@@ -29,6 +29,7 @@ Rails.application.routes.draw do
         collection do
           get ':user_id', to: 'progress#index'
           get 'due/:user_id', to: 'progress#due'
+          get 'stats/:user_id', to: 'progress#stats'
         end
       end
       
