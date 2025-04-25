@@ -7,6 +7,15 @@ Rails.application.routes.draw do
       
       resources :flashcards, only: [:index, :show, :create, :update, :destroy]
       
+      # Flashcard reviews with spaced repetition
+      resources :flashcard_reviews, only: [:create] do
+        collection do
+          get 'due', to: 'flashcard_reviews#due'
+          get 'new', to: 'flashcard_reviews#new'
+          get 'stats', to: 'flashcard_reviews#stats'
+        end
+      end
+      
       resources :quiz_questions, only: [:index, :show, :create] do
         collection do
           post 'generate'
