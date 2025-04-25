@@ -12,6 +12,9 @@ import {
   ApiResponse
 } from '../types/api';
 
+// Re-export progress API from progress.ts
+export { progressAPI } from './progress';
+
 // Create an axios instance with default config
 const api: AxiosInstance = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1',
@@ -110,16 +113,6 @@ export const flashcardAPI = {
     api.get(`/flashcards/${id}`),
 };
 
-// API endpoints for user progress
-export const progressAPI = {
-  getAll: (userId: number): Promise<AxiosResponse<ApiResponse<UserProgress[]>>> => 
-    api.get(`/progress/${userId}`),
-  
-  getDueCards: (userId: number): Promise<AxiosResponse<ApiResponse<UserProgress[]>>> => 
-    api.get(`/progress/due/${userId}`),
-  
-  updateProgress: (progressId: number, progressData: Partial<UserProgress>): Promise<AxiosResponse<ApiResponse<UserProgress>>> => 
-    api.put(`/progress/${progressId}`, { progress: progressData }),
-};
+// Progress API has been moved to separate file progress.ts
 
 export default api; 
