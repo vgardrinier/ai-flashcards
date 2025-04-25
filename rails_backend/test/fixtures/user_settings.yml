@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+user_one_settings:
+  user: one
+  notification_preference: all
+  ui_theme: light
+  timezone: UTC
+
+user_two_settings:
+  user: two
+  notification_preference: important
+  ui_theme: dark
+  timezone: America/New_York
+
+admin_settings:
+  user: admin
+  notification_preference: none
+  ui_theme: system
+  timezone: Europe/London
